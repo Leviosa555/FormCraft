@@ -260,6 +260,8 @@ DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default=f"FormCraft <{_raw_ema
 EMAIL_TIMEOUT = 10
 
 RESEND_API_KEY = config("RESEND_API_KEY", default="").strip()
+BREVO_API_KEY = config("BREVO_API_KEY", default="").strip()
 GEMINI_API_KEY = config("GEMINI_API_KEY", default="").strip()
 SARVAM_API_KEY = config("SARVAM_API_KEY", default="")
+
 

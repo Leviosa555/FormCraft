@@ -16,13 +16,52 @@ def generate_otp_code() -> str:
     return f"{random.randint(100000, 999999)}"
 
 
+def _send_via_brevo(to_email: str, subject: str, html_message: str, text_message: str, api_key: str) -> dict:
+    """
+    Sends email via Brevo's HTTPS REST API (Port 443).
+    Allows sending to ANY recipient email worldwide without domain verification.
+    """
+    try:
+        sender_email = getattr(settings, "EMAIL_HOST_USER", "").strip() or "noreply@formcraft.io"
+        sender_name = "FormCraft"
+
+        response = requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "api-key": api_key,
+                "Content-Type": "application/json",
+                "accept": "application/json",
+            },
+            json={
+                "sender": {"name": sender_name, "email": sender_email},
+                "to": [{"email": to_email}],
+                "subject": subject,
+                "htmlContent": html_message,
+                "textContent": text_message,
+            },
+            timeout=10,
+        )
+
+        if response.status_code in [200, 201]:
+            logger.info(f"Successfully delivered email to {to_email} via Brevo HTTPS API.")
+            return {"success": True}
+        else:
+            err_data = response.json() if response.content else {"message": response.text}
+            err_msg = err_data.get("message", response.text)
+            logger.error(f"Brevo API error ({response.status_code}): {err_msg}")
+            return {"success": False, "error": f"Brevo: {err_msg}"}
+    except Exception as exc:
+        logger.error(f"Brevo HTTP request exception: {exc}")
+        return {"success": False, "error": str(exc)}
+
+
 def _send_via_resend(to_email: str, subject: str, html_message: str, text_message: str, api_key: str) -> dict:
     """
     Sends email via Resend's HTTPS REST API (Port 443).
     Bypasses all cloud/host port blocks (e.g. Render Free tier SMTP blocking).
     """
     try:
-        # Resend test keys only permit 'onboarding@resend.dev' unless a custom domain is verified
+        # Resend test keys permit 'onboarding@resend.dev' unless a custom domain is verified
         from_email = os.getenv("RESEND_FROM_EMAIL", "").strip() or "FormCraft <onboarding@resend.dev>"
 
         response = requests.post(
@@ -57,7 +96,7 @@ def _send_via_resend(to_email: str, subject: str, html_message: str, text_messag
 def send_otp_email(to_email: str, otp_code: str, form_title: str) -> dict:
     """
     Sends an OTP verification email to the respondent.
-    Supports Resend HTTPS API (recommended for Render Free tier) and standard Django SMTP.
+    Supports Brevo (any recipient worldwide), Resend, and standard Django SMTP.
     """
     subject = f"Your Verification Code for {form_title}: {otp_code}"
     
@@ -114,16 +153,23 @@ The FormCraft Team
 </html>
 """
 
-    # 1. Try Resend HTTPS API first (Bypasses Render SMTP port blocking)
+    # 1. Try Brevo HTTPS API first (Allows sending to ANY recipient email without domain verification)
+    brevo_key = getattr(settings, "BREVO_API_KEY", os.getenv("BREVO_API_KEY", "")).strip()
+    if brevo_key:
+        brevo_result = _send_via_brevo(to_email, subject, html_message, message_text, brevo_key)
+        if brevo_result.get("success"):
+            return brevo_result
+        raise RuntimeError(brevo_result.get("error", "Brevo API delivery failed."))
+
+    # 2. Try Resend HTTPS API
     resend_key = getattr(settings, "RESEND_API_KEY", os.getenv("RESEND_API_KEY", "")).strip()
     if resend_key:
         resend_result = _send_via_resend(to_email, subject, html_message, message_text, resend_key)
         if resend_result.get("success"):
             return resend_result
-        # If Resend reported an error, raise the actual message
         raise RuntimeError(resend_result.get("error", "Resend API delivery failed."))
 
-    # 2. Try Standard Django SMTP
+    # 3. Try Standard Django SMTP
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "FormCraft <noreply@formcraft.io>")
 
     try:
@@ -149,7 +195,7 @@ The FormCraft Team
         if "[Errno 101]" in err_str or "Network is unreachable" in err_str:
             raise RuntimeError(
                 "Render Free tier blocks outbound SMTP ports (587/465). "
-                "Add RESEND_API_KEY in Render Environment Variables to send emails via HTTPS port 443!"
+                "Add a free BREVO_API_KEY or verified RESEND_API_KEY in Render Environment Variables to send emails to any recipient via HTTPS!"
             )
         raise exc
 
@@ -266,14 +312,21 @@ Best regards,
 The FormCraft Team
 """
 
-    # 1. Try Resend HTTPS API first
+    # 1. Try Brevo HTTPS API first
+    brevo_key = getattr(settings, "BREVO_API_KEY", os.getenv("BREVO_API_KEY", "")).strip()
+    if brevo_key:
+        brevo_result = _send_via_brevo(to_email, subject, html_message, message_text, brevo_key)
+        if brevo_result.get("success"):
+            return brevo_result
+
+    # 2. Try Resend HTTPS API
     resend_key = getattr(settings, "RESEND_API_KEY", os.getenv("RESEND_API_KEY", "")).strip()
     if resend_key:
         resend_result = _send_via_resend(to_email, subject, html_message, message_text, resend_key)
         if resend_result.get("success"):
             return resend_result
 
-    # 2. Try Standard Django SMTP
+    # 3. Try Standard Django SMTP
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "FormCraft <noreply@formcraft.io>")
     try:
         send_mail(
