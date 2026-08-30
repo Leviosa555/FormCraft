@@ -156,7 +156,8 @@ def _generate_with_gemini(prompt: str, api_key: str) -> dict:
     """
     Calls Google Gemini AI API with strict instructions adhering to FormCraft's exact field types and validation configs.
     """
-    models = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-flash-latest"]
+    models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-flash"]
+
 
     full_prompt = (
         "You are an expert Form Architect for FormCraft. Generate a rich, complete, professional form schema "
