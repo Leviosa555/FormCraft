@@ -22,10 +22,8 @@ def _send_via_resend(to_email: str, subject: str, html_message: str, text_messag
     Bypasses all cloud/host port blocks (e.g. Render Free tier SMTP blocking).
     """
     try:
-        from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "FormCraft <onboarding@resend.dev>")
-        # If using default resend domain, from must be onboarding@resend.dev
-        if "onboarding@resend.dev" not in from_email and "@resend.dev" not in from_email and "formcraft.io" in from_email:
-            from_email = "FormCraft <onboarding@resend.dev>"
+        # Resend test keys only permit 'onboarding@resend.dev' unless a custom domain is verified
+        from_email = os.getenv("RESEND_FROM_EMAIL", "").strip() or "FormCraft <onboarding@resend.dev>"
 
         response = requests.post(
             "https://api.resend.com/emails",
@@ -48,8 +46,9 @@ def _send_via_resend(to_email: str, subject: str, html_message: str, text_messag
             return {"success": True}
         else:
             err_data = response.json() if response.content else {"message": response.text}
-            logger.error(f"Resend API error: {err_data}")
-            return {"success": False, "error": f"Resend API: {err_data.get('message', response.text)}"}
+            err_msg = err_data.get("message", response.text)
+            logger.error(f"Resend API error ({response.status_code}): {err_msg}")
+            return {"success": False, "error": f"Resend: {err_msg}"}
     except Exception as exc:
         logger.error(f"Resend HTTP request exception: {exc}")
         return {"success": False, "error": str(exc)}
@@ -121,11 +120,11 @@ The FormCraft Team
         resend_result = _send_via_resend(to_email, subject, html_message, message_text, resend_key)
         if resend_result.get("success"):
             return resend_result
-        logger.warning(f"Resend failed ({resend_result.get('error')}), attempting SMTP fallback...")
+        # If Resend reported an error, raise the actual message
+        raise RuntimeError(resend_result.get("error", "Resend API delivery failed."))
 
     # 2. Try Standard Django SMTP
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "FormCraft <noreply@formcraft.io>")
-    is_smtp = getattr(settings, "EMAIL_BACKEND", "").endswith("smtp.EmailBackend")
 
     try:
         send_mail(
@@ -150,7 +149,7 @@ The FormCraft Team
         if "[Errno 101]" in err_str or "Network is unreachable" in err_str:
             raise RuntimeError(
                 "Render Free tier blocks outbound SMTP ports (587/465). "
-                "Add a free RESEND_API_KEY in Render Environment Variables to send emails via HTTPS port 443!"
+                "Add RESEND_API_KEY in Render Environment Variables to send emails via HTTPS port 443!"
             )
         raise exc
 
@@ -194,25 +193,6 @@ def send_submission_confirmation_email(to_email: str, form_title: str, submissio
 
     answers_text = "\n".join(summary_lines) if summary_lines else "No response summary available."
     answers_html = "".join(html_rows) if html_rows else "<tr><td colspan='2' style='padding: 12px; color: #64748b;'>No response data.</td></tr>"
-
-    message_text = f"""
-Hello,
-
-Your submission for "{form_title}" has been successfully received and recorded.
-
-Submission Details:
-- Submission ID: #{submission_id}
-- Submitted On: {submitted_at_str}
-- Respondent Email: {to_email}
-
-Your Submitted Answers:
-{answers_text}
-
-Thank you for your submission.
-
-Best regards,
-The FormCraft Team
-"""
 
     html_message = f"""
 <!DOCTYPE html>
@@ -265,6 +245,25 @@ The FormCraft Team
   </div>
 </body>
 </html>
+"""
+
+    message_text = f"""
+Hello,
+
+Your submission for "{form_title}" has been successfully received and recorded.
+
+Submission Details:
+- Submission ID: #{submission_id}
+- Submitted On: {submitted_at_str}
+- Respondent Email: {to_email}
+
+Your Submitted Answers:
+{answers_text}
+
+Thank you for your submission.
+
+Best regards,
+The FormCraft Team
 """
 
     # 1. Try Resend HTTPS API first
