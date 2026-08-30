@@ -1,0 +1,35 @@
+src
+│
+├── api
+│   ├── axios.js
+│   ├── auth.js
+│   └── forms.js
+│
+├── components
+│   ├── common
+│   ├── builder
+│   ├── layout
+│   ├── public
+│   └── ui
+│
+├── layouts
+│   ├── DashboardLayout.jsx
+│   └── PublicLayout.jsx
+│
+├── pages
+│   ├── Login.jsx
+│   ├── Dashboard.jsx
+│   ├── Builder.jsx
+│   ├── PublicForm.jsx
+│   ├── Success.jsx
+│   └── NotFound.jsx
+│
+├── routes
+│   └── AppRoutes.jsx
+│
+├── hooks
+├── utils
+├── assets
+│
+├── App.jsx
+└── main.jsx

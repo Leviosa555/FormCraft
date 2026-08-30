@@ -1,0 +1,1202 @@
+openapi: 3.0.3
+info:
+  title: Dynamic Form Workflow API
+  version: 1.0.0
+  description: API documentation for the Low-Code Dynamic Form Workflow Platform
+paths:
+  /api/conditional-rules/:
+    get:
+      operationId: conditional_rules_list
+      tags:
+      - conditional-rules
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConditionalRule'
+          description: ''
+    post:
+      operationId: conditional_rules_create
+      tags:
+      - conditional-rules
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConditionalRule'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConditionalRule'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConditionalRule'
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConditionalRule'
+          description: ''
+  /api/conditional-rules/{id}/:
+    get:
+      operationId: conditional_rules_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - conditional-rules
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConditionalRule'
+          description: ''
+    put:
+      operationId: conditional_rules_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - conditional-rules
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConditionalRule'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConditionalRule'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConditionalRule'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConditionalRule'
+          description: ''
+    patch:
+      operationId: conditional_rules_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - conditional-rules
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedConditionalRule'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedConditionalRule'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedConditionalRule'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConditionalRule'
+          description: ''
+    delete:
+      operationId: conditional_rules_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - conditional-rules
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/fields/{id}/:
+    put:
+      operationId: fields_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - fields
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Field'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Field'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Field'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Field'
+          description: ''
+    patch:
+      operationId: fields_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - fields
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedField'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedField'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedField'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Field'
+          description: ''
+    delete:
+      operationId: fields_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - fields
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/forms/:
+    get:
+      operationId: forms_list
+      tags:
+      - forms
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Form'
+          description: ''
+    post:
+      operationId: forms_create
+      tags:
+      - forms
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Form'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Form'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Form'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Form'
+          description: ''
+  /api/forms/{form_id}/fields/:
+    get:
+      operationId: forms_fields_list
+      parameters:
+      - in: path
+        name: form_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - forms
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Field'
+          description: ''
+    post:
+      operationId: forms_fields_create
+      parameters:
+      - in: path
+        name: form_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - forms
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Field'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Field'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Field'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Field'
+          description: ''
+  /api/forms/{form_id}/fields/reorder/:
+    patch:
+      operationId: forms_fields_reorder_partial_update
+      parameters:
+      - in: path
+        name: form_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - forms
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedField'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedField'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedField'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Field'
+          description: ''
+  /api/forms/{id}/responses/:
+    get:
+      operationId: forms_responses_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - forms
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/forms/{id}/:
+    get:
+      operationId: forms_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - forms
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Form'
+          description: ''
+    put:
+      operationId: forms_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - forms
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Form'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Form'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Form'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Form'
+          description: ''
+    patch:
+      operationId: forms_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - forms
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedForm'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedForm'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedForm'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Form'
+          description: ''
+    delete:
+      operationId: forms_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - forms
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/forms/{id}/archive/:
+    post:
+      operationId: forms_archive_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - forms
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Form'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Form'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Form'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Form'
+          description: ''
+  /api/forms/{id}/conditional_rules/:
+    get:
+      operationId: forms_conditional_rules_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - forms
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Form'
+          description: ''
+    post:
+      operationId: forms_conditional_rules_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - forms
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Form'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Form'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Form'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Form'
+          description: ''
+  /api/forms/{id}/edit/:
+    post:
+      operationId: forms_edit_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - forms
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Form'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Form'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Form'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Form'
+          description: ''
+  /api/forms/{id}/publish/:
+    post:
+      operationId: forms_publish_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - forms
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: Form published successfully.
+  /api/forms/share/{share_token}/:
+    get:
+      operationId: forms_share_retrieve
+      parameters:
+      - in: path
+        name: share_token
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - forms
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/forms/share/{share_token}/submit/:
+    post:
+      operationId: forms_share_submit_create
+      description: Submit JSON responses as application/json, or submit multipart/form-data
+        with `responses` as a JSON array string and files named `file_<field_id>`.
+        File fields omitted from the multipart body are treated as unanswered.
+      parameters:
+      - in: path
+        name: share_token
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - forms
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Submission'
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - responses
+              properties:
+                responses:
+                  type: string
+                  description: 'A JSON array, for example [{"field": 159, "value":
+                    "yes"}].'
+                file_<field_id>:
+                  type: string
+                  format: binary
+                  description: Replace <field_id> with the ID of a file field, for
+                    example file_162.
+            examples:
+              MultipartResponsesValue:
+                value: '[{"field": 159, "value": "yes"}, {"field": 160, "value": "ABCDE"},
+                  {"field": 161, "value": "person@example.com"}]'
+                summary: Multipart responses value
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          description: Form submitted successfully.
+  /api/login/:
+    post:
+      operationId: login_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenObtainPair'
+          description: ''
+  /api/profile/:
+    get:
+      operationId: profile_retrieve
+      tags:
+      - profile
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/schema/:
+    get:
+      operationId: schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - ht
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - ug
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - schema
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/token/refresh/:
+    post:
+      operationId: token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/uploads/{token}/:
+    get:
+      operationId: uploads_retrieve
+      parameters:
+      - in: path
+        name: token
+        schema:
+          type: string
+        required: true
+      tags:
+      - uploads
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+components:
+  schemas:
+    ActionEnum:
+      enum:
+      - show
+      - hide
+      - require
+      type: string
+      description: |-
+        * `show` - Show
+        * `hide` - Hide
+        * `require` - Require
+    ConditionalRule:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        form_version:
+          type: integer
+          readOnly: true
+        trigger_field:
+          type: integer
+          nullable: true
+        operator:
+          $ref: '#/components/schemas/OperatorEnum'
+        comparison_value:
+          nullable: true
+        target_field:
+          type: integer
+          nullable: true
+        action:
+          $ref: '#/components/schemas/ActionEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - form_version
+      - id
+    Field:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        label:
+          type: string
+          maxLength: 255
+        field_type:
+          $ref: '#/components/schemas/FieldTypeEnum'
+        required:
+          type: boolean
+        placeholder:
+          type: string
+          nullable: true
+          maxLength: 255
+        help_text:
+          type: string
+          nullable: true
+        display_order:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        config: {}
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldOption'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - field_type
+      - id
+      - label
+      - updated_at
+    FieldOption:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        label:
+          type: string
+          maxLength: 255
+        value:
+          type: string
+          maxLength: 255
+        display_order:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+      required:
+      - id
+      - label
+      - value
+    FieldTypeEnum:
+      enum:
+      - text
+      - number
+      - email
+      - dropdown
+      - checkbox
+      - date
+      - file
+      - rating
+      type: string
+      description: |-
+        * `text` - Text
+        * `number` - Number
+        * `email` - Email
+        * `dropdown` - Dropdown
+        * `checkbox` - Checkbox
+        * `date` - Date
+        * `file` - File
+        * `rating` - Rating
+    Form:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        owner:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - owner
+      - status
+      - title
+      - updated_at
+    OperatorEnum:
+      enum:
+      - equals
+      - not_equals
+      - contains
+      - greater_than
+      - is_empty
+      type: string
+      description: |-
+        * `equals` - Equals
+        * `not_equals` - Not Equals
+        * `contains` - Contains
+        * `greater_than` - Greater Than
+        * `is_empty` - Is Empty
+    PatchedConditionalRule:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        form_version:
+          type: integer
+          readOnly: true
+        trigger_field:
+          type: integer
+          nullable: true
+        operator:
+          $ref: '#/components/schemas/OperatorEnum'
+        comparison_value:
+          nullable: true
+        target_field:
+          type: integer
+          nullable: true
+        action:
+          $ref: '#/components/schemas/ActionEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedField:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        label:
+          type: string
+          maxLength: 255
+        field_type:
+          $ref: '#/components/schemas/FieldTypeEnum'
+        required:
+          type: boolean
+        placeholder:
+          type: string
+          nullable: true
+          maxLength: 255
+        help_text:
+          type: string
+          nullable: true
+        display_order:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        config: {}
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldOption'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedForm:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        owner:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    ResponseInput:
+      type: object
+      properties:
+        field:
+          type: integer
+        value: {}
+      required:
+      - field
+      - value
+    StatusEnum:
+      enum:
+      - draft
+      - published
+      - archived
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `published` - Published
+        * `archived` - Archived
+    Submission:
+      type: object
+      properties:
+        responses:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResponseInput'
+      required:
+      - responses
+    TokenObtainPair:
+      type: object
+      properties:
+        username:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - password
+      - refresh
+      - username
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
