@@ -256,7 +256,10 @@ EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", default=True)
 EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", default=False)
 EMAIL_HOST_USER = _raw_email_user
 EMAIL_HOST_PASSWORD = _raw_email_pass
-DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default=f"FormCraft <{_raw_email_user}>" if _raw_email_user else "FormCraft <noreply@formcraft.io>")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default=f"FormCraft <{_raw_email_user}>" if _raw_email_user else "FormCraft <onboarding@resend.dev>")
 EMAIL_TIMEOUT = 10
 
+RESEND_API_KEY = config("RESEND_API_KEY", default="").strip()
+GEMINI_API_KEY = config("GEMINI_API_KEY", default="").strip()
 SARVAM_API_KEY = config("SARVAM_API_KEY", default="")
+

@@ -2,6 +2,7 @@ import os
 import json
 import random
 import logging
+import requests
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
@@ -10,16 +11,54 @@ from datetime import timedelta
 logger = logging.getLogger(__name__)
 
 
-
 def generate_otp_code() -> str:
     """Generate a secure 6-digit numeric OTP."""
     return f"{random.randint(100000, 999999)}"
 
 
+def _send_via_resend(to_email: str, subject: str, html_message: str, text_message: str, api_key: str) -> dict:
+    """
+    Sends email via Resend's HTTPS REST API (Port 443).
+    Bypasses all cloud/host port blocks (e.g. Render Free tier SMTP blocking).
+    """
+    try:
+        from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "FormCraft <onboarding@resend.dev>")
+        # If using default resend domain, from must be onboarding@resend.dev
+        if "onboarding@resend.dev" not in from_email and "@resend.dev" not in from_email and "formcraft.io" in from_email:
+            from_email = "FormCraft <onboarding@resend.dev>"
+
+        response = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": from_email,
+                "to": [to_email],
+                "subject": subject,
+                "html": html_message,
+                "text": text_message,
+            },
+            timeout=10,
+        )
+
+        if response.status_code in [200, 201]:
+            logger.info(f"Successfully delivered email to {to_email} via Resend HTTPS API.")
+            return {"success": True}
+        else:
+            err_data = response.json() if response.content else {"message": response.text}
+            logger.error(f"Resend API error: {err_data}")
+            return {"success": False, "error": f"Resend API: {err_data.get('message', response.text)}"}
+    except Exception as exc:
+        logger.error(f"Resend HTTP request exception: {exc}")
+        return {"success": False, "error": str(exc)}
+
+
 def send_otp_email(to_email: str, otp_code: str, form_title: str) -> dict:
     """
     Sends an OTP verification email to the respondent.
-    Supports standard Django SMTP / Email backend, with console logging in development.
+    Supports Resend HTTPS API (recommended for Render Free tier) and standard Django SMTP.
     """
     subject = f"Your Verification Code for {form_title}: {otp_code}"
     
@@ -76,6 +115,15 @@ The FormCraft Team
 </html>
 """
 
+    # 1. Try Resend HTTPS API first (Bypasses Render SMTP port blocking)
+    resend_key = getattr(settings, "RESEND_API_KEY", os.getenv("RESEND_API_KEY", "")).strip()
+    if resend_key:
+        resend_result = _send_via_resend(to_email, subject, html_message, message_text, resend_key)
+        if resend_result.get("success"):
+            return resend_result
+        logger.warning(f"Resend failed ({resend_result.get('error')}), attempting SMTP fallback...")
+
+    # 2. Try Standard Django SMTP
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "FormCraft <noreply@formcraft.io>")
     is_smtp = getattr(settings, "EMAIL_BACKEND", "").endswith("smtp.EmailBackend")
 
@@ -88,17 +136,22 @@ The FormCraft Team
             html_message=html_message,
             fail_silently=False,
         )
-        logger.info(f"Successfully sent real-time OTP email to {to_email} for form '{form_title}'")
+        logger.info(f"Successfully sent real-time OTP email to {to_email} for form '{form_title}' via SMTP.")
         return {"success": True}
     except Exception as exc:
-        logger.error(f"Failed to send email via SMTP ({exc})")
-        if not is_smtp:
-            print(f"\n==========================================")
-            print(f"📧 [DEV EMAIL OTP] To: {to_email}")
-            print(f"🔑 Form: {form_title}")
-            print(f"👉 OTP CODE: {otp_code}")
-            print(f"==========================================\n")
-            return {"success": True}
+        err_str = str(exc)
+        logger.error(f"Failed to send email via SMTP ({err_str})")
+        print(f"\n==========================================")
+        print(f"📧 [FALLBACK SERVER LOG OTP] To: {to_email}")
+        print(f"🔑 Form: {form_title}")
+        print(f"👉 OTP CODE: {otp_code}")
+        print(f"==========================================\n")
+
+        if "[Errno 101]" in err_str or "Network is unreachable" in err_str:
+            raise RuntimeError(
+                "Render Free tier blocks outbound SMTP ports (587/465). "
+                "Add a free RESEND_API_KEY in Render Environment Variables to send emails via HTTPS port 443!"
+            )
         raise exc
 
 
@@ -214,9 +267,15 @@ The FormCraft Team
 </html>
 """
 
-    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "FormCraft <noreply@formcraft.io>")
-    is_smtp = getattr(settings, "EMAIL_BACKEND", "").endswith("smtp.EmailBackend")
+    # 1. Try Resend HTTPS API first
+    resend_key = getattr(settings, "RESEND_API_KEY", os.getenv("RESEND_API_KEY", "")).strip()
+    if resend_key:
+        resend_result = _send_via_resend(to_email, subject, html_message, message_text, resend_key)
+        if resend_result.get("success"):
+            return resend_result
 
+    # 2. Try Standard Django SMTP
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "FormCraft <noreply@formcraft.io>")
     try:
         send_mail(
             subject=subject,
@@ -230,13 +289,4 @@ The FormCraft Team
         return {"success": True}
     except Exception as exc:
         logger.error(f"Failed to send confirmation email to {to_email}: {exc}")
-        if not is_smtp:
-            print(f"\n==========================================")
-            print(f"📧 [DEV SUBMISSION CONFIRMATION] To: {to_email}")
-            print(f"🔑 Form: {form_title} (ID #{submission_id})")
-            print(f"👉 Summary:\n{answers_text}")
-            print(f"==========================================\n")
         return {"success": False, "error": str(exc)}
-
-
-
