@@ -22,16 +22,19 @@ def _send_via_brevo(to_email: str, subject: str, html_message: str, text_message
     Allows sending to ANY recipient email worldwide without domain verification.
     """
     try:
-        sender_email = getattr(settings, "EMAIL_HOST_USER", "").strip() or "noreply@formcraft.io"
+        sender_email = os.getenv("BREVO_SENDER_EMAIL", "").strip() or getattr(settings, "EMAIL_HOST_USER", "").strip() or "noreply@formcraft.io"
         sender_name = "FormCraft"
+
+        clean_api_key = api_key.strip()
 
         response = requests.post(
             "https://api.brevo.com/v3/smtp/email",
             headers={
-                "api-key": api_key,
+                "api-key": clean_api_key,
                 "Content-Type": "application/json",
                 "accept": "application/json",
             },
+
             json={
                 "sender": {"name": sender_name, "email": sender_email},
                 "to": [{"email": to_email}],
