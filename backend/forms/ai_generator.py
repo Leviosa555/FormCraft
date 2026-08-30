@@ -156,8 +156,8 @@ def _generate_with_gemini(prompt: str, api_key: str) -> dict:
     """
     Calls Google Gemini AI API with strict instructions adhering to FormCraft's exact field types and validation configs.
     """
-    models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-flash"]
-
+    clean_key = (api_key or "").strip()
+    models = ["gemini-flash-latest", "gemini-1.5-flash", "gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-pro"]
 
     full_prompt = (
         "You are an expert Form Architect for FormCraft. Generate a rich, complete, professional form schema "
@@ -196,8 +196,13 @@ def _generate_with_gemini(prompt: str, api_key: str) -> dict:
     )
 
     last_error = None
+    headers = {
+        "Content-Type": "application/json",
+        "X-goog-api-key": clean_key,
+    }
+
     for model_name in models:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
         payload = {
             "contents": [
                 {
@@ -213,7 +218,7 @@ def _generate_with_gemini(prompt: str, api_key: str) -> dict:
         }
 
         try:
-            response = requests.post(url, json=payload, timeout=45)
+            response = requests.post(url, headers=headers, json=payload, timeout=45)
             if response.status_code == 200:
                 data = response.json()
                 candidates = data.get("candidates", [])
@@ -230,6 +235,7 @@ def _generate_with_gemini(prompt: str, api_key: str) -> dict:
             last_error = str(exc)
 
     raise RuntimeError(f"All Gemini models failed: {last_error}")
+
 
 
 def _generate_dynamic_fallback(prompt: str) -> dict:
