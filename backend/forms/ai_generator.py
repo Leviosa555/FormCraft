@@ -211,41 +211,10 @@ def _generate_with_gemini(prompt: str, api_key: str) -> dict:
     models = [
         "gemini-3.6-flash",
         "gemini-2.5-flash",
-        "gemini-2.5-pro",
-        "gemini-2.0-flash",
         "gemini-1.5-flash",
-        "gemini-1.5-pro",
     ]
 
     last_error = None
-
-    # 1. Primary: Official Google GenAI SDK (Native AQ. key support)
-    try:
-        from google import genai
-        client = genai.Client(api_key=clean_key)
-        for model_name in models:
-            try:
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=full_prompt,
-                    config={
-                        "response_mime_type": "application/json",
-                        "temperature": 0.2,
-                    },
-                )
-                if response and response.text:
-                    cleaned_text = re.sub(r"^```json\s*", "", response.text.strip())
-                    cleaned_text = re.sub(r"```$", "", cleaned_text.strip())
-                    schema = json.loads(cleaned_text)
-                    if schema.get("title") and schema.get("fields"):
-                        return schema
-            except Exception as e_sdk:
-                last_error = f"google-genai SDK ({model_name}): {e_sdk}"
-                logger.warning(last_error)
-    except ImportError:
-        logger.info("google-genai SDK not installed, using REST fallback.")
-
-    # 2. Secondary: Direct REST API (Strictly x-goog-api-key header, NO ?key= query string)
     headers = {
         "Content-Type": "application/json",
         "x-goog-api-key": clean_key,
@@ -268,25 +237,31 @@ def _generate_with_gemini(prompt: str, api_key: str) -> dict:
         }
 
         try:
-            response = requests.post(url, headers=headers, json=payload, timeout=30)
+            response = requests.post(url, headers=headers, json=payload, timeout=5)
             if response.status_code == 200:
                 data = response.json()
-                candidates = data.get("candidates", [])
+                candidates = data.get("candidates") or []
                 if candidates:
-                    text = candidates[0]["content"]["parts"][0]["text"]
-                    cleaned_text = re.sub(r"^```json\s*", "", text.strip())
-                    cleaned_text = re.sub(r"```$", "", cleaned_text.strip())
-                    schema = json.loads(cleaned_text)
-                    if schema.get("title") and schema.get("fields"):
-                        return schema
+                    parts = candidates[0].get("content", {}).get("parts") or []
+                    if parts:
+                        text = parts[0].get("text", "")
+                        cleaned_text = re.sub(r"^```json\s*", "", text.strip())
+                        cleaned_text = re.sub(r"```$", "", cleaned_text.strip())
+                        schema = json.loads(cleaned_text)
+                        if schema.get("title") and schema.get("fields"):
+                            return schema
+            elif response.status_code in (400, 401, 403):
+                last_error = f"Auth/Client Error ({model_name}) {response.status_code}: {response.text[:200]}"
+                logger.warning(last_error)
+                break
             else:
-                last_error = f"REST ({model_name}) status {response.status_code}: {response.text}"
+                last_error = f"Model {model_name} returned status {response.status_code}: {response.text[:200]}"
                 logger.warning(last_error)
         except Exception as exc:
-            last_error = f"REST ({model_name}) exception: {exc}"
+            last_error = f"Request ({model_name}) exception: {exc}"
             logger.warning(last_error)
 
-    raise RuntimeError(f"All Gemini models failed: {last_error}")
+    raise RuntimeError(f"Gemini API generation failed: {last_error}")
 
 
 
