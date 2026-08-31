@@ -82,11 +82,15 @@ def generate_form_from_idea(idea: str, user):
         )
 
         created_fields_map = {}
-        for index, f_data in enumerate(schema.get("fields", []), start=1):
+        fields_list = schema.get("fields") or []
+        for index, f_data in enumerate(fields_list, start=1):
+            if not isinstance(f_data, dict):
+                continue
+
             raw_type = f_data.get("field_type", "text")
             f_type = normalize_field_type(raw_type)
 
-            field_config = f_data.get("config", {})
+            field_config = f_data.get("config") or {}
             if not isinstance(field_config, dict):
                 field_config = {}
 
@@ -100,19 +104,22 @@ def generate_form_from_idea(idea: str, user):
                 if "min_value" not in field_config:
                     field_config["min_value"] = 0
 
+            field_label = (f_data.get("label") or f"Question {index}").strip()
+
             field = Field.objects.create(
                 form_version=version,
-                label=f_data["label"],
+                label=field_label,
                 field_type=f_type,
-                required=f_data.get("required", False),
-                placeholder=f_data.get("placeholder", ""),
-                help_text=f_data.get("help_text", ""),
+                required=bool(f_data.get("required", False)),
+                placeholder=str(f_data.get("placeholder") or ""),
+                help_text=str(f_data.get("help_text") or ""),
                 display_order=index,
                 config=field_config,
             )
             created_fields_map[f_data.get("key", f"field_{index}")] = field
 
-            for opt_index, opt in enumerate(f_data.get("options", []), start=1):
+            raw_options = f_data.get("options") or []
+            for opt_index, opt in enumerate(raw_options, start=1):
                 if isinstance(opt, dict):
                     opt_label = opt.get("label", "")
                     opt_value = opt.get("value", opt_label)
@@ -129,7 +136,10 @@ def generate_form_from_idea(idea: str, user):
                     )
 
         # Create conditional rules with strict operator and action validation
-        for r_data in schema.get("conditional_rules", []):
+        rules_list = schema.get("conditional_rules") or []
+        for r_data in rules_list:
+            if not isinstance(r_data, dict):
+                continue
             trigger = created_fields_map.get(r_data.get("trigger_key"))
             target = created_fields_map.get(r_data.get("target_key"))
             if trigger and target:
@@ -154,10 +164,13 @@ def generate_form_from_idea(idea: str, user):
 
 def _generate_with_gemini(prompt: str, api_key: str) -> dict:
     """
-    Calls Google Gemini AI API with strict instructions adhering to FormCraft's exact field types and validation configs.
+    Calls Google Gemini AI API adhering to FormCraft's exact field types and validation configs.
+    Supports both modern google-genai SDK and raw REST API with strict 'x-goog-api-key' header
+    (fully compatible with new 'AQ.' and legacy 'AIza' keys).
     """
     clean_key = (api_key or "").strip()
-    models = ["gemini-flash-latest", "gemini-1.5-flash", "gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-pro"]
+    if not clean_key:
+        raise ValueError("GEMINI_API_KEY is empty.")
 
     full_prompt = (
         "You are an expert Form Architect for FormCraft. Generate a rich, complete, professional form schema "
@@ -195,10 +208,47 @@ def _generate_with_gemini(prompt: str, api_key: str) -> dict:
         "}"
     )
 
+    models = [
+        "gemini-3.6-flash",
+        "gemini-2.5-flash",
+        "gemini-2.5-pro",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-1.5-pro",
+    ]
+
     last_error = None
+
+    # 1. Primary: Official Google GenAI SDK (Native AQ. key support)
+    try:
+        from google import genai
+        client = genai.Client(api_key=clean_key)
+        for model_name in models:
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=full_prompt,
+                    config={
+                        "response_mime_type": "application/json",
+                        "temperature": 0.2,
+                    },
+                )
+                if response and response.text:
+                    cleaned_text = re.sub(r"^```json\s*", "", response.text.strip())
+                    cleaned_text = re.sub(r"```$", "", cleaned_text.strip())
+                    schema = json.loads(cleaned_text)
+                    if schema.get("title") and schema.get("fields"):
+                        return schema
+            except Exception as e_sdk:
+                last_error = f"google-genai SDK ({model_name}): {e_sdk}"
+                logger.warning(last_error)
+    except ImportError:
+        logger.info("google-genai SDK not installed, using REST fallback.")
+
+    # 2. Secondary: Direct REST API (Strictly x-goog-api-key header, NO ?key= query string)
     headers = {
         "Content-Type": "application/json",
-        "X-goog-api-key": clean_key,
+        "x-goog-api-key": clean_key,
     }
 
     for model_name in models:
@@ -218,7 +268,7 @@ def _generate_with_gemini(prompt: str, api_key: str) -> dict:
         }
 
         try:
-            response = requests.post(url, headers=headers, json=payload, timeout=45)
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
             if response.status_code == 200:
                 data = response.json()
                 candidates = data.get("candidates", [])
@@ -230,9 +280,11 @@ def _generate_with_gemini(prompt: str, api_key: str) -> dict:
                     if schema.get("title") and schema.get("fields"):
                         return schema
             else:
-                last_error = f"Model {model_name} returned status {response.status_code}: {response.text}"
+                last_error = f"REST ({model_name}) status {response.status_code}: {response.text}"
+                logger.warning(last_error)
         except Exception as exc:
-            last_error = str(exc)
+            last_error = f"REST ({model_name}) exception: {exc}"
+            logger.warning(last_error)
 
     raise RuntimeError(f"All Gemini models failed: {last_error}")
 
