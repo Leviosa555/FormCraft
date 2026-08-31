@@ -209,9 +209,9 @@ def _generate_with_gemini(prompt: str, api_key: str) -> dict:
     )
 
     models = [
+        "gemini-3.5-flash",
         "gemini-3.6-flash",
-        "gemini-2.5-flash",
-        "gemini-1.5-flash",
+        "gemini-3.5-flash-lite",
     ]
 
     last_error = None
@@ -237,7 +237,7 @@ def _generate_with_gemini(prompt: str, api_key: str) -> dict:
         }
 
         try:
-            response = requests.post(url, headers=headers, json=payload, timeout=5)
+            response = requests.post(url, headers=headers, json=payload, timeout=15)
             if response.status_code == 200:
                 data = response.json()
                 candidates = data.get("candidates") or []
