@@ -182,6 +182,12 @@ class RetentionSerializer(serializers.Serializer):
 class ExpirationSerializer(serializers.Serializer):
     expires_at = serializers.DateTimeField(allow_null=True, required=True)
 
+    def validate_expires_at(self, value):
+        from django.utils import timezone
+        if value is not None and value <= timezone.now():
+            raise serializers.ValidationError("Expiration time must be set in the future.")
+        return value
+
 
 class ConditionalRuleSerializer(serializers.ModelSerializer):
     def validate(self, attrs):

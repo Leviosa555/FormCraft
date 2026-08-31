@@ -21,24 +21,29 @@ export default function FormExpirationDialog({ form, onUpdated }) {
   const [loading, setLoading] = useState(false);
   const [expiryDate, setExpiryDate] = useState("");
 
+  const toLocalDatetimeString = (d) => {
+    if (!d || isNaN(d.getTime())) return "";
+    const pad = (n) => String(n).padStart(2, "0");
+    const y = d.getFullYear();
+    const m = pad(d.getMonth() + 1);
+    const day = pad(d.getDate());
+    const h = pad(d.getHours());
+    const min = pad(d.getMinutes());
+    return `${y}-${m}-${day}T${h}:${min}`;
+  };
+
   useEffect(() => {
     if (form?.expires_at) {
-      // Convert ISO string to format YYYY-MM-DDTHH:MM for datetime-local input
       const d = new Date(form.expires_at);
-      const tzOffset = d.getTimezoneOffset() * 60000;
-      const localISOTime = new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
-      setExpiryDate(localISOTime);
+      setExpiryDate(toLocalDatetimeString(d));
     } else {
       setExpiryDate("");
     }
-  }, [form, open]);
+  }, [form?.expires_at, open]);
 
   const setPreset = (hours) => {
-    const now = new Date();
-    const target = new Date(now.getTime() + hours * 60 * 60 * 1000);
-    const tzOffset = target.getTimezoneOffset() * 60000;
-    const localISOTime = new Date(target.getTime() - tzOffset).toISOString().slice(0, 16);
-    setExpiryDate(localISOTime);
+    const target = new Date(Date.now() + hours * 60 * 60 * 1000);
+    setExpiryDate(toLocalDatetimeString(target));
   };
 
   const handleSave = async (e) => {
@@ -54,8 +59,8 @@ export default function FormExpirationDialog({ form, onUpdated }) {
       return;
     }
 
-    if (selectedTime <= new Date()) {
-      toast.error("Expiration time must be in the future.");
+    if (selectedTime.getTime() <= Date.now()) {
+      toast.error("Expiration time must be set in the future.");
       return;
     }
 
@@ -69,7 +74,7 @@ export default function FormExpirationDialog({ form, onUpdated }) {
       if (onUpdated) onUpdated(updated);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to update form expiration.");
+      toast.error(err?.response?.data?.expires_at?.[0] || "Failed to update form expiration.");
     } finally {
       setLoading(false);
     }

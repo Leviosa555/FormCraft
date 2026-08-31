@@ -40,7 +40,8 @@ class Form(models.Model):
 
     def check_auto_expire(self):
         from django.utils import timezone
-        if self.expires_at and timezone.now() >= self.expires_at and self.status != "archived":
+        # Only published forms should auto-expire and archive when their public submission deadline passes
+        if self.status == "published" and self.expires_at and timezone.now() >= self.expires_at:
             self.status = "archived"
             self.save(update_fields=["status"])
             self.versions.filter(status="published").update(status="archived")
