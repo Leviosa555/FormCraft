@@ -211,7 +211,6 @@ def _generate_with_gemini(prompt: str, api_key: str) -> dict:
     models = [
         "gemini-3.5-flash",
         "gemini-3.6-flash",
-        "gemini-3.5-flash-lite",
     ]
 
     last_error = None
@@ -237,7 +236,8 @@ def _generate_with_gemini(prompt: str, api_key: str) -> dict:
         }
 
         try:
-            response = requests.post(url, headers=headers, json=payload, timeout=15)
+            # 8-second tight timeout per model ensures fast response and prevents Gunicorn worker timeouts
+            response = requests.post(url, headers=headers, json=payload, timeout=8)
             if response.status_code == 200:
                 data = response.json()
                 candidates = data.get("candidates") or []
@@ -257,6 +257,11 @@ def _generate_with_gemini(prompt: str, api_key: str) -> dict:
             else:
                 last_error = f"Model {model_name} returned status {response.status_code}: {response.text[:200]}"
                 logger.warning(last_error)
+        except requests.exceptions.Timeout:
+            last_error = f"Model {model_name} timed out after 8s."
+            logger.warning(last_error)
+            # Break immediately on timeout to trigger instantaneous fallback synthesizer
+            break
         except Exception as exc:
             last_error = f"Request ({model_name}) exception: {exc}"
             logger.warning(last_error)
