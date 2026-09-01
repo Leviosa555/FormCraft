@@ -17,6 +17,9 @@ import {
   FileText,
   FileSpreadsheet,
   FileCode,
+  ChevronDown,
+  ChevronUp,
+  User,
 } from "lucide-react";
 
 export default function FormResponses() {
@@ -27,6 +30,36 @@ export default function FormResponses() {
   const [responses, setResponses] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [expandedRows, setExpandedRows] = useState({});
+
+  const toggleRow = (subId) => {
+    setExpandedRows((prev) => ({
+      ...prev,
+      [subId]: !prev[subId],
+    }));
+  };
+
+  const getRespondentName = (sub) => {
+    if (sub.responses && Array.isArray(sub.responses)) {
+      const nameItem = sub.responses.find((r) => {
+        const fieldLower = String(r.field || "").toLowerCase();
+        return (
+          fieldLower.includes("name") ||
+          fieldLower.includes("applicant") ||
+          fieldLower.includes("candidate") ||
+          fieldLower.includes("respondent")
+        );
+      });
+      if (nameItem && nameItem.value && typeof nameItem.value === "string") {
+        return nameItem.value;
+      }
+    }
+    if (sub.respondent_email) {
+      const prefix = sub.respondent_email.split("@")[0];
+      return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+    }
+    return null;
+  };
 
   const downloadExport = async (format) => {
     try {
@@ -185,88 +218,122 @@ export default function FormResponses() {
             </div>
           ) : (
             <>
-              {/* MOBILE LAYOUT (< 768px): Sleek, compact card stack */}
-              <div className="block md:hidden divide-y divide-slate-100 p-3 space-y-3">
+              {/* MOBILE LAYOUT (< 768px): Compact interactive list with name + mail and click to expand details */}
+              <div className="block md:hidden p-2.5 space-y-2.5">
                 {responses.map((sub) => {
+                  const isExpanded = Boolean(expandedRows[sub.id]);
+                  const respondentName = getRespondentName(sub);
                   const submittedDate = sub.submitted_at || sub.created_at;
                   const dateStr = submittedDate
                     ? new Date(submittedDate).toLocaleString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
                     : "—";
 
                   return (
                     <div
                       key={sub.id}
-                      className="rounded-xl border border-slate-200/80 bg-slate-50/40 p-3.5 space-y-3 shadow-2xs"
+                      className={`rounded-xl border transition-all duration-200 overflow-hidden ${isExpanded
+                          ? "border-primary/40 bg-white shadow-sm ring-1 ring-primary/20"
+                          : "border-slate-200 bg-white hover:border-slate-300 shadow-2xs"
+                        }`}
                     >
-                      {/* Top Bar: #ID + Status + Date */}
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-bold text-slate-700 bg-white border border-slate-200 px-2 py-0.5 rounded-md shadow-2xs">
-                            #{sub.id}
-                          </span>
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                              sub.status === "submitted"
-                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
-                                : "bg-slate-100 text-slate-600"
-                            }`}
-                          >
+                      {/* Clickable Row Header */}
+                      <button
+                        type="button"
+                        onClick={() => toggleRow(sub.id)}
+                        className="w-full p-3.5 text-left flex items-start justify-between gap-3 select-none active:bg-slate-50 transition-colors"
+                      >
+                        <div className="min-w-0 flex-1 space-y-1.5">
+                          {/* Top row: ID + Status + Name */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
+                              #{sub.id}
+                            </span>
+                            {respondentName ? (
+                              <span className="font-semibold text-xs text-slate-900 truncate">
+                                {respondentName}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-slate-400 italic">
+                                Anonymous
+                              </span>
+                            )}
                             <span
-                              className={`h-1.5 w-1.5 rounded-full ${
-                                sub.status === "submitted" ? "bg-emerald-500" : "bg-slate-400"
-                              }`}
-                            />
-                            {sub.status === "submitted" ? "Submitted" : "Archived"}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                          <Calendar className="h-3 w-3 text-slate-400" />
-                          <span>{dateStr}</span>
-                        </div>
-                      </div>
-
-                      {/* Respondent Email */}
-                      <div>
-                        {sub.respondent_email ? (
-                          <div className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50/90 px-2.5 py-1 text-xs font-semibold text-emerald-800 border border-emerald-200/70 max-w-full truncate">
-                            <Mail className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                            <span className="truncate">{sub.respondent_email}</span>
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-semibold ${sub.status === "submitted"
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                                  : "bg-slate-100 text-slate-600"
+                                }`}
+                            >
+                              <span
+                                className={`h-1.5 w-1.5 rounded-full ${sub.status === "submitted" ? "bg-emerald-500" : "bg-slate-400"
+                                  }`}
+                              />
+                              {sub.status === "submitted" ? "Submitted" : "Archived"}
+                            </span>
                           </div>
-                        ) : (
-                          <span className="text-xs text-slate-400 italic">Anonymous Respondent</span>
-                        )}
-                      </div>
 
-                      {/* Collected Answers */}
-                      {sub.responses && sub.responses.length > 0 ? (
-                        <div className="space-y-2 pt-1 border-t border-slate-200/60">
-                          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                            Answers ({sub.responses.length})
-                          </p>
-                          <div className="space-y-1.5">
-                            {sub.responses.map((item, rIdx) => (
-                              <div
-                                key={rIdx}
-                                className="bg-white rounded-lg p-2.5 border border-slate-200/70 shadow-2xs space-y-1"
-                              >
-                                <p className="text-[11px] font-semibold text-slate-700 leading-tight">
-                                  {item.field}
-                                </p>
-                                <div className="text-xs text-slate-900 font-medium">
-                                  {renderResponseValue(item)}
+                          {/* Email Line */}
+                          {sub.respondent_email ? (
+                            <div className="flex items-center gap-1.5 text-xs text-emerald-800 font-medium">
+                              <Mail className="h-3 w-3 text-emerald-600 shrink-0" />
+                              <span className="truncate">{sub.respondent_email}</span>
+                            </div>
+                          ) : null}
+
+                          {/* Date line & tap hint */}
+                          <div className="flex items-center justify-between pt-0.5 text-[10.5px] text-slate-400">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3 text-slate-400" />
+                              {dateStr}
+                            </span>
+                            <span className="text-primary font-medium">
+                              {isExpanded ? "Hide answers ▲" : "View answers ▼"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 pt-1 text-slate-400">
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-primary" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-slate-400" />
+                          )}
+                        </div>
+                      </button>
+
+                      {/* Expandable Details Container */}
+                      {isExpanded && (
+                        <div className="border-t border-slate-100 bg-slate-50/60 p-3.5 space-y-2.5">
+                          <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                            <span>Submitted Answers ({sub.responses?.length || 0})</span>
+                          </div>
+
+                          {sub.responses && sub.responses.length > 0 ? (
+                            <div className="space-y-2">
+                              {sub.responses.map((item, rIdx) => (
+                                <div
+                                  key={rIdx}
+                                  className="bg-white rounded-xl p-2.5 border border-slate-200/80 shadow-2xs space-y-1"
+                                >
+                                  <p className="text-[11px] font-semibold text-slate-700 leading-tight">
+                                    {item.field}
+                                  </p>
+                                  <div className="text-xs text-slate-900 font-medium pt-0.5">
+                                    {renderResponseValue(item)}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-slate-400 italic py-2 text-center">
+                              No answers recorded for this submission.
+                            </p>
+                          )}
                         </div>
-                      ) : (
-                        <p className="text-xs text-slate-400 italic">No answers recorded</p>
                       )}
                     </div>
                   );
@@ -325,18 +392,16 @@ export default function FormResponses() {
                           {/* Status */}
                           <td className="px-5 py-4 whitespace-nowrap">
                             <span
-                              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10.5px] font-semibold ${
-                                sub.status === "submitted"
+                              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10.5px] font-semibold ${sub.status === "submitted"
                                   ? "bg-emerald-50 text-emerald-700 border border-emerald-200/50"
                                   : "bg-slate-100 text-slate-600"
-                              }`}
+                                }`}
                             >
                               <span
-                                className={`h-1.5 w-1.5 rounded-full ${
-                                  sub.status === "submitted"
+                                className={`h-1.5 w-1.5 rounded-full ${sub.status === "submitted"
                                     ? "bg-emerald-500"
                                     : "bg-slate-400"
-                                }`}
+                                  }`}
                               />
                               {sub.status === "submitted" ? "Submitted" : "Archived"}
                             </span>
