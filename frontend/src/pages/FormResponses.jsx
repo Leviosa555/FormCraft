@@ -291,7 +291,7 @@ export default function FormResponses() {
                               {dateStr}
                             </span>
                             <span className="text-primary font-medium">
-                              {isExpanded ? "Hide answers ▲" : "View answers ▼"}
+                              {isExpanded ? "Collapse" : "View submission"}
                             </span>
                           </div>
                         </div>
@@ -309,7 +309,7 @@ export default function FormResponses() {
                       {isExpanded && (
                         <div className="border-t border-slate-100 bg-slate-50/60 p-3.5 space-y-2.5">
                           <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                            <span>Submitted Answers ({sub.responses?.length || 0})</span>
+                            <span>Submission Data ({sub.responses?.length || 0})</span>
                           </div>
 
                           {sub.responses && sub.responses.length > 0 ? (
