@@ -82,6 +82,9 @@ export default function Builder() {
     try {
       const res = await getForm(id);
       setForm(res.data);
+      if (res.data?.share_token) {
+        setShareToken(res.data.share_token);
+      }
     } catch (err) {
       console.error("Failed to fetch form:", err);
     }

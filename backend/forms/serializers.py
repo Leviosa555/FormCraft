@@ -10,6 +10,7 @@ from .models import ConditionalRule
 
 class FormSerializer(serializers.ModelSerializer):
     owner = serializers.StringRelatedField(read_only=True)
+    share_token = serializers.SerializerMethodField()
 
     class Meta:
         model = Form
@@ -25,6 +26,7 @@ class FormSerializer(serializers.ModelSerializer):
             "expires_at",
             "require_email_verification",
             "limit_one_submission_per_email",
+            "share_token",
         ]
         read_only_fields = [
             "id",
@@ -32,7 +34,22 @@ class FormSerializer(serializers.ModelSerializer):
             "owner",
             "created_at",
             "updated_at",
+            "share_token",
         ]
+
+    def get_share_token(self, obj):
+        # Return the active published version's share_token until archived
+        if obj.status == "published":
+            published_version = obj.versions.filter(status="published").order_by("-version").first()
+            if published_version and published_version.share_token:
+                return str(published_version.share_token)
+            active_version = obj.versions.filter(is_active=True).first()
+            if active_version and active_version.share_token:
+                return str(active_version.share_token)
+            latest = obj.versions.order_by("-version").first()
+            if latest and latest.share_token:
+                return str(latest.share_token)
+        return None
 
     def validate_title(self, value):
         trimmed = value.strip()
