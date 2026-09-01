@@ -119,16 +119,18 @@ export default function FormExpirationDialog({ form, onUpdated }) {
   const isExpired = hasExpiration && new Date(form.expires_at) <= new Date();
   const isAutoExpireActive = !isArchived && hasExpiration && !isExpired;
 
+  const userTimeZone = typeof Intl !== "undefined" && Intl.DateTimeFormat ? Intl.DateTimeFormat().resolvedOptions().timeZone : "Local";
+
   const formatExpiryDisplay = (isoStr) => {
     if (!isoStr) return "";
     const d = new Date(isoStr);
-    return d.toLocaleString(undefined, {
+    return `${d.toLocaleString(undefined, {
       month: "short",
       day: "numeric",
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    });
+    })} (${userTimeZone})`;
   };
 
   return (
@@ -260,9 +262,14 @@ export default function FormExpirationDialog({ form, onUpdated }) {
 
           {/* Custom Date Time Input */}
           <div className="space-y-1.5">
-            <Label htmlFor="custom-expiry" className="text-xs font-medium text-slate-700">
-              Or Custom Expiration Date & Time
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="custom-expiry" className="text-xs font-medium text-slate-700">
+                Or Custom Expiration Date & Time
+              </Label>
+              <span className="text-[10.5px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                {userTimeZone}
+              </span>
+            </div>
             <Input
               id="custom-expiry"
               type="datetime-local"

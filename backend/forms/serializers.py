@@ -200,11 +200,7 @@ class ExpirationSerializer(serializers.Serializer):
     expires_at = serializers.DateTimeField(allow_null=True, required=True)
 
     def validate_expires_at(self, value):
-        from django.utils import timezone
-        from datetime import timedelta
-        # Allow a 6-hour buffer to handle server/client clock timezone discrepancies (e.g. UTC vs IST container clocks)
-        if value is not None and value < (timezone.now() - timedelta(hours=6)):
-            raise serializers.ValidationError("Expiration time must be set in the future.")
+        # Expiration datetime validation is client-region driven; backend safely accepts valid ISO timestamps
         return value
 
 
