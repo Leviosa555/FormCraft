@@ -167,11 +167,11 @@ export default function FormResponses() {
           <div>
             <div className="flex items-center gap-2">
               <Link
-                to={`/builder/${id}`}
+                to="/dashboard"
                 className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
-                <span>Back to Builder</span>
+                <span>Back to Dashboard</span>
               </Link>
             </div>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
