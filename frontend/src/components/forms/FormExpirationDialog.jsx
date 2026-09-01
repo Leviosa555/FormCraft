@@ -20,6 +20,7 @@ export default function FormExpirationDialog({ form, onUpdated }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [expiryDate, setExpiryDate] = useState("");
+  const [targetDateObj, setTargetDateObj] = useState(null);
 
   const toLocalDatetimeString = (d) => {
     if (!d || isNaN(d.getTime())) return "";
@@ -35,8 +36,10 @@ export default function FormExpirationDialog({ form, onUpdated }) {
   useEffect(() => {
     if (form?.expires_at) {
       const d = new Date(form.expires_at);
+      setTargetDateObj(d);
       setExpiryDate(toLocalDatetimeString(d));
     } else {
+      setTargetDateObj(null);
       setExpiryDate("");
     }
   }, [form?.expires_at, open]);
@@ -44,6 +47,7 @@ export default function FormExpirationDialog({ form, onUpdated }) {
   const setPreset = (hours) => {
     toast.dismiss();
     const target = new Date(Date.now() + hours * 60 * 60 * 1000);
+    setTargetDateObj(target);
     setExpiryDate(toLocalDatetimeString(target));
   };
 
@@ -56,16 +60,17 @@ export default function FormExpirationDialog({ form, onUpdated }) {
     return new Date(y, m - 1, d, h, min, 0);
   };
 
+  const handleCustomChange = (e) => {
+    const val = e.target.value;
+    setExpiryDate(val);
+    setTargetDateObj(parseLocalDateTime(val));
+  };
+
   const handleSave = async (e) => {
     e?.preventDefault();
-    if (!expiryDate) {
-      toast.error("Please pick an expiration date/time or select a quick preset.");
-      return;
-    }
-
-    const selectedTime = parseLocalDateTime(expiryDate);
+    const selectedTime = targetDateObj || parseLocalDateTime(expiryDate);
     if (!selectedTime || isNaN(selectedTime.getTime())) {
-      toast.error("Invalid date format.");
+      toast.error("Please pick an expiration date/time or select a quick preset.");
       return;
     }
 
@@ -262,7 +267,7 @@ export default function FormExpirationDialog({ form, onUpdated }) {
               id="custom-expiry"
               type="datetime-local"
               value={expiryDate}
-              onChange={(e) => setExpiryDate(e.target.value)}
+              onChange={handleCustomChange}
               className="h-9 text-xs"
             />
           </div>
