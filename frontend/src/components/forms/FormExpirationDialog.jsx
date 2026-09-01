@@ -47,6 +47,15 @@ export default function FormExpirationDialog({ form, onUpdated }) {
     setExpiryDate(toLocalDatetimeString(target));
   };
 
+  const parseLocalDateTime = (str) => {
+    if (!str) return null;
+    const [datePart, timePart] = str.split("T");
+    if (!datePart || !timePart) return new Date(str);
+    const [y, m, d] = datePart.split("-").map(Number);
+    const [h, min] = timePart.split(":").map(Number);
+    return new Date(y, m - 1, d, h, min, 0);
+  };
+
   const handleSave = async (e) => {
     e?.preventDefault();
     if (!expiryDate) {
@@ -54,14 +63,14 @@ export default function FormExpirationDialog({ form, onUpdated }) {
       return;
     }
 
-    const selectedTime = new Date(expiryDate);
-    if (isNaN(selectedTime.getTime())) {
+    const selectedTime = parseLocalDateTime(expiryDate);
+    if (!selectedTime || isNaN(selectedTime.getTime())) {
       toast.error("Invalid date format.");
       return;
     }
 
-    // 15s grace buffer to prevent false negatives from UI latency
-    if (selectedTime.getTime() < (Date.now() - 15000)) {
+    // 30s grace buffer to prevent false negatives from UI latency
+    if (selectedTime.getTime() < (Date.now() - 30000)) {
       toast.error("Expiration time must be set in the future.");
       return;
     }
