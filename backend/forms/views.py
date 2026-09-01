@@ -226,7 +226,10 @@ class FormViewSet(viewsets.ModelViewSet):
         )
 
         form.status = "published"
-        form.save(update_fields=["status"])
+        # If the form had an expiration time that has already passed, clear it so the newly published form is not immediately archived
+        if form.expires_at and timezone.now() >= form.expires_at:
+            form.expires_at = None
+        form.save(update_fields=["status", "expires_at"])
 
         return Response(
             {
@@ -282,7 +285,6 @@ class FormViewSet(viewsets.ModelViewSet):
 
         field_map = {}
         for old_field in old_fields:
-
             new_field = Field.objects.create(
                 form_version=new_version,
                 label=old_field.label,
@@ -296,7 +298,6 @@ class FormViewSet(viewsets.ModelViewSet):
             field_map[old_field.id] = new_field
 
             for option in old_field.options.all():
-
                 FieldOption.objects.create(
                     field=new_field,
                     label=option.label,
