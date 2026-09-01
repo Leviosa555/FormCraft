@@ -201,7 +201,9 @@ class ExpirationSerializer(serializers.Serializer):
 
     def validate_expires_at(self, value):
         from django.utils import timezone
-        if value is not None and value <= timezone.now():
+        from datetime import timedelta
+        # Allow 15-second grace window to account for network transmission latency
+        if value is not None and value < (timezone.now() - timedelta(seconds=15)):
             raise serializers.ValidationError("Expiration time must be set in the future.")
         return value
 

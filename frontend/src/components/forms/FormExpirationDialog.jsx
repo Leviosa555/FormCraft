@@ -42,6 +42,7 @@ export default function FormExpirationDialog({ form, onUpdated }) {
   }, [form?.expires_at, open]);
 
   const setPreset = (hours) => {
+    toast.dismiss();
     const target = new Date(Date.now() + hours * 60 * 60 * 1000);
     setExpiryDate(toLocalDatetimeString(target));
   };
@@ -59,7 +60,8 @@ export default function FormExpirationDialog({ form, onUpdated }) {
       return;
     }
 
-    if (selectedTime.getTime() <= Date.now()) {
+    // 15s grace buffer to prevent false negatives from UI latency
+    if (selectedTime.getTime() < (Date.now() - 15000)) {
       toast.error("Expiration time must be set in the future.");
       return;
     }
