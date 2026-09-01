@@ -32,17 +32,23 @@ import {
   TrendingUp,
   Activity,
   CheckCircle2,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import CreateFormDialog from "@/components/forms/CreateFormDialog";
 import UserSettingsDialog from "@/components/settings/UserSettingsDialog";
 import ShareFormDialog from "@/components/forms/ShareFormDialog";
-import { duplicateForm, exportResponses, getFormAnalytics, getForms, setRetentionPolicy } from "@/api/forms";
+import { duplicateForm, deleteForm, exportResponses, getFormAnalytics, getForms, setRetentionPolicy } from "@/api/forms";
 import { getProfile, logout } from "@/api/auth";
 import { Button } from "@/components/ui/button";
-
-
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LanguageSelector } from "@/components/ui/LanguageSelector";
 import { useTranslation } from "@/lib/i18n";
@@ -144,6 +150,26 @@ export default function Dashboard() {
   };
 
   const [exporting, setExporting] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteActiveForm = async () => {
+    if (!active?.id) return;
+    try {
+      setDeleting(true);
+      await deleteForm(active.id);
+      toast.success("Form deleted successfully.");
+      setDeleteConfirmOpen(false);
+      const remainingForms = forms.filter((f) => f.id !== active.id);
+      setForms(remainingForms);
+      setActive(remainingForms[0] || null);
+    } catch (err) {
+      console.error("Failed to delete form:", err);
+      toast.error("Failed to delete form.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const downloadCSV = async () => {
     if (!active?.id) return;
@@ -187,7 +213,7 @@ export default function Dashboard() {
 
     if (selectedSource === "status") {
       return (analytics.status_distribution || [])
-        .filter((d) => d.value > 0)
+        .filter((d) => d.value > 0 && d.name !== "Archived")
         .map((d, i) => ({
           label: d.name,
           value: d.value,
@@ -220,7 +246,56 @@ export default function Dashboard() {
     }
 
     return [];
-  }, [analytics, selectedSource, selectedFieldDist, t]);
+  }, [analytics, selectedSource, selectedFieldDist]);
+
+  // Compute dynamic distribution summary items (synchronized with currently selected source/field)
+  const currentSummaryItems = useMemo(() => {
+    if (!analytics) return [];
+
+    if (selectedSource === "status") {
+      return (analytics.status_distribution || [])
+        .filter((item) => item.name !== "Archived")
+        .map((item) => ({
+          name: item.name === "Submitted"
+            ? t("dashboard.activeSubmissions", "Submitted")
+            : item.name === "In-Progress"
+            ? t("dashboard.inProgress", "In-Progress")
+            : item.name,
+          value: item.value,
+          color: item.color || (item.name === "Submitted" ? "#10b981" : "#f59e0b"),
+        }));
+    }
+
+    if (selectedSource === "duration") {
+      return (analytics.duration_distribution || []).map((d, i) => ({
+        name: d.value,
+        value: d.count,
+        color: CHART_COLORS[i % CHART_COLORS.length],
+      }));
+    }
+
+    if (selectedSource === "timeline") {
+      return (analytics.timeline_distribution || []).map((d, i) => ({
+        name: d.date,
+        value: d.submissions,
+        color: CHART_COLORS[i % CHART_COLORS.length],
+      }));
+    }
+
+    if (selectedFieldDist) {
+      return (selectedFieldDist.distribution || []).map((d, i) => ({
+        name: String(d.value),
+        value: d.count,
+        color: CHART_COLORS[i % CHART_COLORS.length],
+      }));
+    }
+
+    return (activeChartData || []).map((d) => ({
+      name: d.label,
+      value: d.value,
+      color: d.color,
+    }));
+  }, [analytics, selectedSource, selectedFieldDist, activeChartData, t]);
 
   const totalValue = useMemo(() => {
     return (activeChartData || []).reduce((sum, item) => sum + (Number(item.value) || 0), 0);
@@ -400,6 +475,15 @@ export default function Dashboard() {
                         className="h-7.5 text-xs font-medium"
                       >
                         {t("dashboard.viewResponses", "View responses")}
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="destructive"
+                        onClick={() => setDeleteConfirmOpen(true)}
+                        className="h-7.5 text-xs font-medium gap-1 bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        <span>Delete Form</span>
                       </Button>
                     </div>
                   </CardHeader>
@@ -691,39 +775,56 @@ export default function Dashboard() {
 
                   {/* Side Column: Operations & Fast Stats */}
                   <div className="flex min-h-0 flex-col gap-2.5 overflow-y-auto pr-1">
-                    {/* Quick Response Distribution Mini-Pill Card */}
+                    {/* Quick Response Distribution Mini-Pill Card (Dynamic) */}
                     <Card className="shrink-0 border-slate-200 py-0 shadow-xs">
                       <CardHeader className="px-3.5 py-2.5 pb-1.5">
-                        <CardTitle className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
-                          <PieIcon className="h-3.5 w-3.5 text-primary" />
-                          {t("dashboard.distSummary", "Distribution summary")}
+                        <CardTitle className="flex items-center justify-between text-xs font-semibold text-slate-800">
+                          <span className="flex items-center gap-1.5">
+                            <PieIcon className="h-3.5 w-3.5 text-primary" />
+                            {t("dashboard.distSummary", "Distribution summary")}
+                          </span>
+                          {totalValue > 0 && (
+                            <span className="text-[10.5px] font-normal text-slate-400">
+                              Total: {totalValue}
+                            </span>
+                          )}
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-1 px-3.5 pb-2.5 pt-0">
-                        <div className="space-y-1">
-                          {analytics?.status_distribution?.map((item) => (
-                            <div
-                              key={item.name}
-                              className="flex items-center justify-between text-xs py-0.5"
-                            >
-                              <div className="flex items-center gap-1.5">
-                                <span
-                                  className="h-2 w-2 rounded-full"
-                                  style={{ backgroundColor: item.color }}
-                                />
-                                <span className="text-slate-600 font-medium">
-                                  {item.name === "Submitted"
-                                    ? t("dashboard.activeSubmissions", "Submitted")
-                                    : item.name === "In-Progress"
-                                    ? t("dashboard.inProgress", "In-Progress")
-                                    : item.name === "Archived"
-                                    ? t("dashboard.statusArchived", "Archived")
-                                    : item.name}
-                                </span>
-                              </div>
-                              <span className="font-semibold text-slate-900">{item.value}</span>
-                            </div>
-                          ))}
+                        <div className="space-y-1 max-h-48 overflow-y-auto pr-0.5">
+                          {currentSummaryItems && currentSummaryItems.length > 0 ? (
+                            currentSummaryItems.map((item, idx) => {
+                              const percentage = totalValue > 0 ? Math.round((item.value / totalValue) * 100) : 0;
+                              return (
+                                <div
+                                  key={idx}
+                                  className="flex items-center justify-between text-xs py-1 border-b border-slate-50 last:border-0"
+                                >
+                                  <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-2">
+                                    <span
+                                      className="h-2 w-2 rounded-full shrink-0"
+                                      style={{ backgroundColor: item.color }}
+                                    />
+                                    <span className="text-slate-700 font-medium truncate text-xs" title={item.name}>
+                                      {item.name}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <span className="font-semibold text-slate-900">{item.value}</span>
+                                    {totalValue > 0 && (
+                                      <span className="text-[10px] text-slate-400 font-normal">
+                                        ({percentage}%)
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <p className="text-xs text-slate-400 italic py-2 text-center">
+                              No distribution data recorded.
+                            </p>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -803,6 +904,45 @@ export default function Dashboard() {
           </section>
         </div>
       </div>
+
+      {/* Delete Form Confirmation Dialog */}
+      {deleteConfirmOpen && (
+        <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+          <DialogContent className="max-w-sm p-5">
+            <DialogHeader>
+              <DialogTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
+                <Trash2 className="h-4 w-4 text-red-600" />
+                Delete Form
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500 pt-1">
+                Are you sure you want to delete <strong className="text-slate-800">&quot;{active?.title}&quot;</strong>? All associated questions, configurations, and collected submissions will be permanently removed.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs border-slate-200"
+                onClick={() => setDeleteConfirmOpen(false)}
+                disabled={deleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="h-8 text-xs bg-red-600 hover:bg-red-700 text-white"
+                onClick={handleDeleteActiveForm}
+                disabled={deleting}
+              >
+                {deleting ? "Deleting..." : "Delete Form"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </main>
   );
 }
