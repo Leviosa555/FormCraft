@@ -89,7 +89,8 @@ class FormViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         form.expires_at = serializer.validated_data["expires_at"]
         form.save(update_fields=["expires_at"])
-        form.check_auto_expire()
+        if form.expires_at is None:
+            form.check_auto_expire()
         AuditLog.objects.create(
             form=form,
             actor=request.user,
