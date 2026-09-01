@@ -43,7 +43,8 @@ class Form(models.Model):
         # Only published forms should auto-expire and archive when their public submission deadline passes
         if self.status == "published" and self.expires_at and timezone.now() >= self.expires_at:
             self.status = "archived"
-            self.save(update_fields=["status"])
+            self.expires_at = None  # Turn off/clear active expiration once form is archived
+            self.save(update_fields=["status", "expires_at"])
             self.versions.filter(status="published").update(status="archived")
             return True
         return False

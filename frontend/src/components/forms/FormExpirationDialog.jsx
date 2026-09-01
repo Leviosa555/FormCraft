@@ -98,8 +98,10 @@ export default function FormExpirationDialog({ form, onUpdated }) {
     }
   };
 
+  const isArchived = form?.status === "archived";
   const hasExpiration = Boolean(form?.expires_at);
   const isExpired = hasExpiration && new Date(form.expires_at) <= new Date();
+  const isAutoExpireActive = !isArchived && hasExpiration && !isExpired;
 
   const formatExpiryDisplay = (isoStr) => {
     if (!isoStr) return "";
@@ -118,20 +120,16 @@ export default function FormExpirationDialog({ form, onUpdated }) {
       <DialogTrigger
         render={
           <Button
-            variant={hasExpiration ? "default" : "outline"}
+            variant={isAutoExpireActive ? "default" : "outline"}
             size="sm"
             className={`h-9 text-xs gap-1.5 ${
-              hasExpiration
+              isAutoExpireActive
                 ? "bg-amber-600 hover:bg-amber-700 text-white"
                 : "text-slate-700 border-slate-200"
             }`}
           >
             <Clock className="h-3.5 w-3.5" />
-            {hasExpiration
-              ? isExpired
-                ? "Expired"
-                : "Auto-Expire Active"
-              : "Auto-Expire"}
+            {isAutoExpireActive ? "Auto-Expire Active" : "Auto-Expire"}
           </Button>
         }
       />
@@ -143,23 +141,26 @@ export default function FormExpirationDialog({ form, onUpdated }) {
             Form Auto-Expiration Limit
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
-            Set a time limit after which this form automatically closes and transitions to the <strong>Archived</strong> stage.
+            Set a time limit after which this published form automatically closes and transitions to the <strong>Archived</strong> stage.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           {/* Current Expiry Status Banner */}
-          {hasExpiration ? (
+          {isArchived ? (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
+              <span>Form is currently Archived. Auto-expiration is turned off.</span>
+            </div>
+          ) : isAutoExpireActive ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-900 flex items-start gap-2.5">
               <Clock className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-amber-950">
-                  {isExpired ? "Form Expired" : "Expiration Scheduled"}
+                  Auto-Expiration Active
                 </p>
                 <p className="text-[11px] text-amber-800 mt-0.5">
-                  {isExpired
-                    ? `Expired on ${formatExpiryDisplay(form.expires_at)}`
-                    : `Will automatically archive on ${formatExpiryDisplay(form.expires_at)}`}
+                  Will automatically archive on {formatExpiryDisplay(form.expires_at)}
                 </p>
               </div>
               <Button
@@ -170,13 +171,13 @@ export default function FormExpirationDialog({ form, onUpdated }) {
                 onClick={handleClear}
                 disabled={loading}
               >
-                Clear
+                Turn Off
               </Button>
             </div>
           ) : (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 flex items-center gap-2">
               <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
-              <span>No expiration active. Form accepts responses indefinitely.</span>
+              <span>Auto-expiration is currently off. Form accepts responses indefinitely when published.</span>
             </div>
           )}
 

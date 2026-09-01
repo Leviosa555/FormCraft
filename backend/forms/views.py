@@ -343,9 +343,10 @@ class FormViewSet(viewsets.ModelViewSet):
             )
 
         form.status = "archived"
+        form.expires_at = None
 
         form.save(
-            update_fields=["status"]
+            update_fields=["status", "expires_at"]
         )
 
         return Response(
