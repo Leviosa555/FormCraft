@@ -1,4 +1,4 @@
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, update_last_login
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -14,7 +14,10 @@ class UserSerializer(serializers.ModelSerializer):
             "email",
             "first_name",
             "last_name",
+            "last_login",
+            "date_joined",
         ]
+        read_only_fields = ["id", "last_login", "date_joined"]
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -33,6 +36,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 raise serializers.ValidationError("Email or Password is incorrect.")
             attrs["username"] = user.username
             data = super().validate(attrs)
+            update_last_login(None, user)
+            user.refresh_from_db()
             data["user"] = UserSerializer(user).data
             return data
 
@@ -95,6 +100,8 @@ class RegisterSerializer(serializers.ModelSerializer):
             first_name=validated_data.get("first_name", "").strip(),
             last_name=validated_data.get("last_name", "").strip(),
         )
+        update_last_login(None, user)
+        user.refresh_from_db()
         return user
 
 

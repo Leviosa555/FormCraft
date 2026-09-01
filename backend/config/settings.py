@@ -210,6 +210,7 @@ SIMPLE_JWT = {
 
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": False,
+    "UPDATE_LAST_LOGIN": True,
 
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
