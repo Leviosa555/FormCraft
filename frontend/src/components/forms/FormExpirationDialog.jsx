@@ -21,6 +21,7 @@ export default function FormExpirationDialog({ form, onUpdated }) {
   const [loading, setLoading] = useState(false);
   const [expiryDate, setExpiryDate] = useState("");
   const [targetDateObj, setTargetDateObj] = useState(null);
+  const [presetHours, setPresetHours] = useState(null);
 
   const toLocalDatetimeString = (d) => {
     if (!d || isNaN(d.getTime())) return "";
@@ -42,11 +43,13 @@ export default function FormExpirationDialog({ form, onUpdated }) {
       setTargetDateObj(null);
       setExpiryDate("");
     }
+    setPresetHours(null);
   }, [form?.expires_at, open]);
 
   const setPreset = (hours) => {
     toast.dismiss();
     const target = new Date(Date.now() + hours * 60 * 60 * 1000);
+    setPresetHours(hours);
     setTargetDateObj(target);
     setExpiryDate(toLocalDatetimeString(target));
   };
@@ -62,6 +65,7 @@ export default function FormExpirationDialog({ form, onUpdated }) {
 
   const handleCustomChange = (e) => {
     const val = e.target.value;
+    setPresetHours(null);
     setExpiryDate(val);
     setTargetDateObj(parseLocalDateTime(val));
   };
@@ -82,9 +86,11 @@ export default function FormExpirationDialog({ form, onUpdated }) {
 
     try {
       setLoading(true);
-      const updated = await setFormExpiration(form.id, {
-        expires_at: selectedTime.toISOString(),
-      });
+      const payload = presetHours != null
+        ? { preset_hours: presetHours }
+        : { expires_at: selectedTime.toISOString() };
+
+      const updated = await setFormExpiration(form.id, payload);
       toast.success("Auto-expiration limit scheduled successfully.");
       setOpen(false);
       if (onUpdated) onUpdated(updated);

@@ -197,11 +197,8 @@ class RetentionSerializer(serializers.Serializer):
 
 
 class ExpirationSerializer(serializers.Serializer):
-    expires_at = serializers.DateTimeField(allow_null=True, required=True)
-
-    def validate_expires_at(self, value):
-        # Expiration datetime validation is client-region driven; backend safely accepts valid ISO timestamps
-        return value
+    expires_at = serializers.DateTimeField(allow_null=True, required=False)
+    preset_hours = serializers.FloatField(required=False, min_value=0.01, max_value=87600)
 
 
 class ConditionalRuleSerializer(serializers.ModelSerializer):

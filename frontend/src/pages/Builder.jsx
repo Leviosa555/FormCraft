@@ -402,10 +402,6 @@ export default function Builder() {
 
         <div className="flex flex-wrap items-center gap-2">
           <LanguageSelector />
-          <FormExpirationDialog
-            form={form}
-            onUpdated={(updated) => setForm((prev) => ({ ...prev, ...updated }))}
-          />
 
           {form.status === "draft" && (
             <Button size="sm" onClick={handlePublish} className="h-8.5 text-xs">
@@ -415,6 +411,11 @@ export default function Builder() {
 
           {form.status === "published" && (
             <>
+              <FormExpirationDialog
+                form={form}
+                onUpdated={(updated) => setForm((prev) => ({ ...prev, ...updated }))}
+              />
+
               <Button size="sm" onClick={handleEditDraft} className="h-8.5 text-xs">
                 {t("builder.activeDraft", "Edit Draft")}
               </Button>
