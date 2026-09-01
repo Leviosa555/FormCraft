@@ -29,6 +29,8 @@ export default function Login() {
   const [mode, setMode] = useState("login"); // "login" | "register"
 
   const [form, setForm] = useState({
+    first_name: "",
+    last_name: "",
     email: "",
     username: "",
     password: "",
@@ -110,6 +112,15 @@ export default function Login() {
 
     if (mode === "register") {
       const errors = {};
+
+      if (!form.first_name.trim()) {
+        errors.first_name = "First name is required.";
+      }
+
+      if (!form.last_name.trim()) {
+        errors.last_name = "Last name is required.";
+      }
+
       if (!form.email.trim()) {
         errors.email = "Email address is required.";
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
@@ -135,7 +146,13 @@ export default function Login() {
       }
 
       try {
-        const regRes = await register(form.username.trim(), form.email.trim(), form.password);
+        const regRes = await register({
+          first_name: form.first_name.trim(),
+          last_name: form.last_name.trim(),
+          username: form.username.trim(),
+          email: form.email.trim(),
+          password: form.password,
+        });
         toast.success("Account created successfully! Signing in...");
         const loginData = await login(form.username.trim(), form.password);
         const access = loginData.access || regRes.access;
@@ -151,10 +168,15 @@ export default function Login() {
         }
         navigate("/dashboard", { replace: true });
       } catch (err) {
-
         const backendErrors = {};
         if (err.response?.data) {
           const data = err.response.data;
+          if (data.first_name) {
+            backendErrors.first_name = Array.isArray(data.first_name) ? data.first_name[0] : data.first_name;
+          }
+          if (data.last_name) {
+            backendErrors.last_name = Array.isArray(data.last_name) ? data.last_name[0] : data.last_name;
+          }
           if (data.username) {
             backendErrors.username = Array.isArray(data.username) ? data.username[0] : data.username;
           }
@@ -168,11 +190,9 @@ export default function Login() {
             setGeneralError(data.detail);
           } else if (data.error) {
             setGeneralError(data.error);
-          } else if (Object.keys(backendErrors).length === 0) {
-            setGeneralError("Registration failed. Please check your inputs.");
           }
         } else {
-          setGeneralError("Network error. Please try again later.");
+          setGeneralError("Registration failed. Please check your network and try again.");
         }
         setFieldErrors(backendErrors);
         toast.error("Registration failed. Please correct the highlighted errors.");
@@ -396,6 +416,73 @@ export default function Login() {
                   {generalError}
                 </div>
               )}
+
+              {/* First Name & Last Name (Register mode only) */}
+              <AnimatePresence>
+                {mode === "register" && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="grid grid-cols-2 gap-2.5 overflow-hidden"
+                  >
+                    <div className="space-y-1">
+                      <Label
+                        htmlFor="first_name"
+                        className="text-xs font-medium text-foreground flex items-center gap-1.5"
+                      >
+                        <User className="h-3.5 w-3.5 text-muted-foreground" />
+                        {t("auth.firstName", "First name")}
+                      </Label>
+                      <Input
+                        id="first_name"
+                        name="first_name"
+                        type="text"
+                        placeholder={t("auth.firstNamePlaceholder", "First name")}
+                        value={form.first_name}
+                        onChange={handleChange}
+                        autoComplete="given-name"
+                        className={`h-9 rounded-lg border bg-surface/40 text-xs transition-colors focus-visible:bg-background ${fieldErrors.first_name
+                          ? "border-destructive focus-visible:ring-destructive"
+                          : "border-border"
+                          }`}
+                        required
+                      />
+                      {fieldErrors.first_name && (
+                        <p className="text-[11px] font-medium text-destructive">{fieldErrors.first_name}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label
+                        htmlFor="last_name"
+                        className="text-xs font-medium text-foreground flex items-center gap-1.5"
+                      >
+                        <User className="h-3.5 w-3.5 text-muted-foreground" />
+                        {t("auth.lastName", "Last name")}
+                      </Label>
+                      <Input
+                        id="last_name"
+                        name="last_name"
+                        type="text"
+                        placeholder={t("auth.lastNamePlaceholder", "Last name")}
+                        value={form.last_name}
+                        onChange={handleChange}
+                        autoComplete="family-name"
+                        className={`h-9 rounded-lg border bg-surface/40 text-xs transition-colors focus-visible:bg-background ${fieldErrors.last_name
+                          ? "border-destructive focus-visible:ring-destructive"
+                          : "border-border"
+                          }`}
+                        required
+                      />
+                      {fieldErrors.last_name && (
+                        <p className="text-[11px] font-medium text-destructive">{fieldErrors.last_name}</p>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Email Address (Register mode only) */}
               <AnimatePresence>

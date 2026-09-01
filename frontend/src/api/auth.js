@@ -8,11 +8,19 @@ export const login = (credentialsOrUsername, maybePassword) => {
   return api.post("/login/", payload).then((res) => res.data);
 };
 
-export const register = (dataOrUsername, maybeEmail, maybePassword) => {
-  const payload =
-    typeof dataOrUsername === "object" && dataOrUsername !== null
-      ? dataOrUsername
-      : { username: dataOrUsername, email: maybeEmail, password: maybePassword };
+export const register = (dataOrUsername, maybeEmail, maybePassword, maybeFirstName, maybeLastName) => {
+  let payload;
+  if (typeof dataOrUsername === "object" && dataOrUsername !== null) {
+    payload = dataOrUsername;
+  } else {
+    payload = {
+      username: dataOrUsername,
+      email: maybeEmail,
+      password: maybePassword,
+      first_name: maybeFirstName,
+      last_name: maybeLastName,
+    };
+  }
   return api.post("/register/", payload).then((res) => res.data);
 };
 
