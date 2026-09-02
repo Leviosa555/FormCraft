@@ -78,7 +78,7 @@ export default function FormExpirationDialog({ form, onUpdated }) {
       return;
     }
 
-    // 30s grace buffer to prevent false negatives from UI latency
+    const diffSeconds = Math.max(30, Math.round((selectedTime.getTime() - Date.now()) / 1000));
     if (selectedTime.getTime() < (Date.now() - 30000)) {
       toast.error("Expiration time must be set in the future.");
       return;
@@ -87,8 +87,8 @@ export default function FormExpirationDialog({ form, onUpdated }) {
     try {
       setLoading(true);
       const payload = presetHours != null
-        ? { preset_hours: presetHours }
-        : { expires_at: selectedTime.toISOString() };
+        ? { preset_hours: presetHours, duration_seconds: Math.round(presetHours * 3600) }
+        : { duration_seconds: diffSeconds, expires_at: selectedTime.toISOString() };
 
       const updated = await setFormExpiration(form.id, payload);
       toast.success("Auto-expiration limit scheduled successfully.");

@@ -87,8 +87,11 @@ class FormViewSet(viewsets.ModelViewSet):
         form = self.get_object()
         serializer = ExpirationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        duration_seconds = serializer.validated_data.get("duration_seconds")
         preset_hours = serializer.validated_data.get("preset_hours")
-        if preset_hours is not None:
+        if duration_seconds is not None:
+            form.expires_at = timezone.now() + timedelta(seconds=duration_seconds)
+        elif preset_hours is not None:
             form.expires_at = timezone.now() + timedelta(hours=preset_hours)
         elif "expires_at" in serializer.validated_data:
             form.expires_at = serializer.validated_data["expires_at"]

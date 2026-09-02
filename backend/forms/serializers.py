@@ -198,6 +198,7 @@ class RetentionSerializer(serializers.Serializer):
 
 class ExpirationSerializer(serializers.Serializer):
     expires_at = serializers.DateTimeField(allow_null=True, required=False)
+    duration_seconds = serializers.IntegerField(required=False, min_value=1, max_value=315360000)
     preset_hours = serializers.FloatField(required=False, min_value=0.01, max_value=87600)
 
 
