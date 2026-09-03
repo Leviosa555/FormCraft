@@ -266,12 +266,7 @@ def infer_and_enrich_field_validations(
         return cleaned_config
 
     elif f_type == "date":
-        cleaned_config = {}
-        if config.get("min_date"):
-            cleaned_config["min_date"] = str(config["min_date"])
-        if config.get("max_date"):
-            cleaned_config["max_date"] = str(config["max_date"])
-        return cleaned_config
+        return {}
 
     elif f_type == "file":
         exts = config.get("allowed_extensions")
@@ -300,14 +295,7 @@ def infer_and_enrich_field_validations(
         }
 
     elif f_type == "rating":
-        max_rating = config.get("max_rating", 5)
-        if "10" in text_context:
-            max_rating = 10
-        try:
-            max_rating = max(2, int(max_rating))
-        except (ValueError, TypeError):
-            max_rating = 5
-        return {"max_rating": max_rating}
+        return {"max_rating": 5}
 
     return {}
 

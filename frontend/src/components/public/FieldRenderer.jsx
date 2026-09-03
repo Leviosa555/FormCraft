@@ -184,7 +184,7 @@ export default function FieldRenderer({
       return (
         <>
           <div className="flex gap-2">
-            {Array.from({ length: field.config?.max_rating || 5 }, (_, index) => index + 1).map((rating) => (
+            {Array.from({ length: 5 }, (_, index) => index + 1).map((rating) => (
               <button
                 key={rating}
                 type="button"

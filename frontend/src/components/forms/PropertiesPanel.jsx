@@ -93,16 +93,13 @@ export default function PropertiesPanel({
       } else if (editedField.field_type === "checkbox") {
         if (rawCfg.min_select !== undefined && rawCfg.min_select !== "") cleanCfg.min_select = Number(rawCfg.min_select);
         if (rawCfg.max_select !== undefined && rawCfg.max_select !== "") cleanCfg.max_select = Number(rawCfg.max_select);
-      } else if (editedField.field_type === "date") {
-        if (rawCfg.min_date) cleanCfg.min_date = String(rawCfg.min_date);
-        if (rawCfg.max_date) cleanCfg.max_date = String(rawCfg.max_date);
       } else if (editedField.field_type === "file") {
         if (Array.isArray(rawCfg.allowed_extensions) && rawCfg.allowed_extensions.length > 0) {
           cleanCfg.allowed_extensions = rawCfg.allowed_extensions;
         }
         if (rawCfg.max_size_mb !== undefined && rawCfg.max_size_mb !== "") cleanCfg.max_size_mb = Number(rawCfg.max_size_mb);
       } else if (editedField.field_type === "rating") {
-        if (rawCfg.max_rating !== undefined && rawCfg.max_rating !== "") cleanCfg.max_rating = Number(rawCfg.max_rating);
+        cleanCfg.max_rating = 5;
       }
 
       await updateField(editedField.id, {
@@ -246,7 +243,7 @@ export default function PropertiesPanel({
       </div>
 
       {/* Validation Rules Section */}
-      {["text", "number", "dropdown", "checkbox", "date", "rating", "file"].includes(editedField.field_type) && (
+      {["text", "number", "dropdown", "checkbox", "file"].includes(editedField.field_type) && (
         <div className="space-y-3 border-t border-slate-100 pt-3">
           <label className="block text-xs font-semibold text-slate-600">
             {t("builder.validationRules", "Validation Rules")}
@@ -491,55 +488,6 @@ export default function PropertiesPanel({
                   }
                 />
               </div>
-            </div>
-          )}
-
-          {/* Date validation properties */}
-          {editedField.field_type === "date" && (
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="mb-1 block text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
-                  Min Date
-                </label>
-                <Input
-                  type="date"
-                  className="h-8 text-xs"
-                  value={editedField.config?.min_date ?? ""}
-                  onChange={(e) => handleConfigChange("min_date", e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
-                  Max Date
-                </label>
-                <Input
-                  type="date"
-                  className="h-8 text-xs"
-                  value={editedField.config?.max_date ?? ""}
-                  onChange={(e) => handleConfigChange("max_date", e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Rating validation properties */}
-          {editedField.field_type === "rating" && (
-            <div>
-              <label className="mb-1 block text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
-                Max Rating Scale (Stars/Points)
-              </label>
-              <Input
-                type="number"
-                className="h-8 text-xs"
-                placeholder="e.g. 5 or 10"
-                value={editedField.config?.max_rating ?? 5}
-                onChange={(e) =>
-                  handleConfigChange(
-                    "max_rating",
-                    e.target.value === "" ? "" : Math.max(2, parseInt(e.target.value) || 5)
-                  )
-                }
-              />
             </div>
           )}
 

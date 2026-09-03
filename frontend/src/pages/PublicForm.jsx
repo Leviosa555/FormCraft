@@ -269,12 +269,6 @@ export default function PublicForm() {
               }
             }
           } else if (field.field_type === "date") {
-            if (config.min_date && value < config.min_date) {
-              newErrors[field.id] = `Date cannot be before ${config.min_date}.`;
-            }
-            if (config.max_date && value > config.max_date) {
-              newErrors[field.id] = `Date cannot be after ${config.max_date}.`;
-            }
             if (config.disable_past_dates) {
               const selectedDate = new Date(value);
               const today = new Date();
@@ -501,7 +495,7 @@ export default function PublicForm() {
       case "rating":
         return (
           <div className="flex items-center gap-1 text-amber-500">
-            {Array.from({ length: field.config?.max_rating || 5 }).map((_, i) => (
+            {Array.from({ length: 5 }).map((_, i) => (
               <Star
                 key={i}
                 className={`h-4 w-4 ${i < Number(value) ? "fill-amber-400 text-amber-400" : "text-slate-200"
@@ -509,7 +503,7 @@ export default function PublicForm() {
               />
             ))}
             <span className="ml-2 text-xs font-semibold text-slate-700">
-              {value} / {field.config?.max_rating || 5}
+              {value} / 5
             </span>
           </div>
         );
