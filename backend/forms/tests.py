@@ -64,4 +64,41 @@ class DynamicFallbackGeneratorTests(SimpleTestCase):
         schema = _generate_dynamic_fallback("event RSVP")
         group_size = next(field for field in schema["fields"] if field["key"] == "group_size")
 
-        self.assertEqual(group_size["config"], {"min": 1, "max": 10})
+        self.assertEqual(group_size["config"]["min"], 1)
+        self.assertEqual(group_size["config"]["max"], 10)
+        self.assertEqual(group_size["config"]["decimal"], False)
+        self.assertEqual(group_size["config"]["number_pattern"], "numeric")
+
+    def test_infer_and_enrich_field_validations(self):
+        from .ai_generator import infer_and_enrich_field_validations
+        from fields.validators import FieldConfigValidator
+
+        # Text name field
+        text_cfg = infer_and_enrich_field_validations("text", "Full Name", "full_name")
+        self.assertEqual(text_cfg["text_pattern"], "alpha")
+        self.assertGreaterEqual(text_cfg["min_length"], 2)
+        FieldConfigValidator.validate("text", text_cfg)
+
+        # Alphanumeric text field
+        code_cfg = infer_and_enrich_field_validations("text", "Passport ID / Promo Code", "passport_id")
+        self.assertEqual(code_cfg["text_pattern"], "alphanumeric")
+        FieldConfigValidator.validate("text", code_cfg)
+
+        # Number currency/salary field
+        salary_cfg = infer_and_enrich_field_validations("number", "Expected Annual Salary ($)", "salary")
+        self.assertTrue(salary_cfg["decimal"])
+        self.assertEqual(salary_cfg["min"], 0)
+        FieldConfigValidator.validate("number", salary_cfg)
+
+        # Checkbox field
+        cb_cfg = infer_and_enrich_field_validations("checkbox", "Preferred Tech Stack", "stack", options=["React", "Vue", "Angular"])
+        self.assertEqual(cb_cfg["min_select"], 1)
+        self.assertEqual(cb_cfg["max_select"], 3)
+        FieldConfigValidator.validate("checkbox", cb_cfg)
+
+        # File resume field
+        file_cfg = infer_and_enrich_field_validations("file", "Upload Technical Resume", "resume")
+        self.assertIn("pdf", file_cfg["allowed_extensions"])
+        self.assertEqual(file_cfg["max_size_mb"], 10)
+        FieldConfigValidator.validate("file", file_cfg)
+

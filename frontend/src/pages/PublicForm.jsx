@@ -236,22 +236,45 @@ export default function PublicForm() {
 
             if (!newErrors[field.id]) {
               const numVal = Number(value);
+              const minLimit = config.min !== undefined && config.min !== "" ? config.min : config.min_value;
+              const maxLimit = config.max !== undefined && config.max !== "" ? config.max : config.max_value;
+
               if (
-                config.min_value !== undefined &&
-                config.min_value !== "" &&
-                numVal < Number(config.min_value)
+                minLimit !== undefined &&
+                minLimit !== "" &&
+                numVal < Number(minLimit)
               ) {
-                newErrors[field.id] = `Must be at least ${config.min_value}.`;
+                newErrors[field.id] = `Must be at least ${minLimit}.`;
               }
               if (
-                config.max_value !== undefined &&
-                config.max_value !== "" &&
-                numVal > Number(config.max_value)
+                maxLimit !== undefined &&
+                maxLimit !== "" &&
+                numVal > Number(maxLimit)
               ) {
-                newErrors[field.id] = `Must be no more than ${config.max_value}.`;
+                newErrors[field.id] = `Must be no more than ${maxLimit}.`;
+              }
+              if (
+                config.min_length !== undefined &&
+                config.min_length !== "" &&
+                valStr.length < Number(config.min_length)
+              ) {
+                newErrors[field.id] = `Must contain at least ${config.min_length} digits.`;
+              }
+              if (
+                config.max_length !== undefined &&
+                config.max_length !== "" &&
+                valStr.length > Number(config.max_length)
+              ) {
+                newErrors[field.id] = `Must contain no more than ${config.max_length} digits.`;
               }
             }
           } else if (field.field_type === "date") {
+            if (config.min_date && value < config.min_date) {
+              newErrors[field.id] = `Date cannot be before ${config.min_date}.`;
+            }
+            if (config.max_date && value > config.max_date) {
+              newErrors[field.id] = `Date cannot be after ${config.max_date}.`;
+            }
             if (config.disable_past_dates) {
               const selectedDate = new Date(value);
               const today = new Date();
@@ -270,19 +293,22 @@ export default function PublicForm() {
             }
           } else if (field.field_type === "checkbox") {
             if (Array.isArray(value)) {
+              const minSel = config.min_select !== undefined && config.min_select !== "" ? config.min_select : config.min_choices;
+              const maxSel = config.max_select !== undefined && config.max_select !== "" ? config.max_select : config.max_choices;
+
               if (
-                config.min_choices !== undefined &&
-                config.min_choices !== "" &&
-                value.length < Number(config.min_choices)
+                minSel !== undefined &&
+                minSel !== "" &&
+                value.length < Number(minSel)
               ) {
-                newErrors[field.id] = `Select at least ${config.min_choices} options.`;
+                newErrors[field.id] = `Select at least ${minSel} option${Number(minSel) > 1 ? "s" : ""}.`;
               }
               if (
-                config.max_choices !== undefined &&
-                config.max_choices !== "" &&
-                value.length > Number(config.max_choices)
+                maxSel !== undefined &&
+                maxSel !== "" &&
+                value.length > Number(maxSel)
               ) {
-                newErrors[field.id] = `Select no more than ${config.max_choices} options.`;
+                newErrors[field.id] = `Select no more than ${maxSel} option${Number(maxSel) > 1 ? "s" : ""}.`;
               }
             }
           }

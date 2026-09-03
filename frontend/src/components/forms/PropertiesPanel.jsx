@@ -72,6 +72,39 @@ export default function PropertiesPanel({
     try {
       setSaving(true);
 
+      const rawCfg = editedField.config || {};
+      const cleanCfg = {};
+
+      if (editedField.field_type === "text") {
+        if (rawCfg.text_pattern) cleanCfg.text_pattern = rawCfg.text_pattern;
+        if (rawCfg.min_length !== undefined && rawCfg.min_length !== "") cleanCfg.min_length = Number(rawCfg.min_length);
+        if (rawCfg.max_length !== undefined && rawCfg.max_length !== "") cleanCfg.max_length = Number(rawCfg.max_length);
+      } else if (editedField.field_type === "number") {
+        if (rawCfg.number_pattern) cleanCfg.number_pattern = rawCfg.number_pattern;
+        if (rawCfg.min_length !== undefined && rawCfg.min_length !== "") cleanCfg.min_length = Number(rawCfg.min_length);
+        if (rawCfg.max_length !== undefined && rawCfg.max_length !== "") cleanCfg.max_length = Number(rawCfg.max_length);
+        if (rawCfg.number_pattern !== "alphanumeric") {
+          if (rawCfg.min !== undefined && rawCfg.min !== "") cleanCfg.min = Number(rawCfg.min);
+          if (rawCfg.max !== undefined && rawCfg.max !== "") cleanCfg.max = Number(rawCfg.max);
+          if (rawCfg.decimal !== undefined) cleanCfg.decimal = Boolean(rawCfg.decimal);
+        }
+      } else if (editedField.field_type === "dropdown") {
+        if (rawCfg.allow_other !== undefined) cleanCfg.allow_other = Boolean(rawCfg.allow_other);
+      } else if (editedField.field_type === "checkbox") {
+        if (rawCfg.min_select !== undefined && rawCfg.min_select !== "") cleanCfg.min_select = Number(rawCfg.min_select);
+        if (rawCfg.max_select !== undefined && rawCfg.max_select !== "") cleanCfg.max_select = Number(rawCfg.max_select);
+      } else if (editedField.field_type === "date") {
+        if (rawCfg.min_date) cleanCfg.min_date = String(rawCfg.min_date);
+        if (rawCfg.max_date) cleanCfg.max_date = String(rawCfg.max_date);
+      } else if (editedField.field_type === "file") {
+        if (Array.isArray(rawCfg.allowed_extensions) && rawCfg.allowed_extensions.length > 0) {
+          cleanCfg.allowed_extensions = rawCfg.allowed_extensions;
+        }
+        if (rawCfg.max_size_mb !== undefined && rawCfg.max_size_mb !== "") cleanCfg.max_size_mb = Number(rawCfg.max_size_mb);
+      } else if (editedField.field_type === "rating") {
+        if (rawCfg.max_rating !== undefined && rawCfg.max_rating !== "") cleanCfg.max_rating = Number(rawCfg.max_rating);
+      }
+
       await updateField(editedField.id, {
         label: editedField.label,
         placeholder: editedField.placeholder,
@@ -79,7 +112,7 @@ export default function PropertiesPanel({
         required: editedField.required,
         field_type: editedField.field_type,
         display_order: editedField.display_order,
-        config: editedField.config,
+        config: cleanCfg,
         options: editedField.options,
       });
 
@@ -213,12 +246,11 @@ export default function PropertiesPanel({
       </div>
 
       {/* Validation Rules Section */}
-      {["text", "number"].includes(editedField.field_type) && (
+      {["text", "number", "dropdown", "checkbox", "date", "rating", "file"].includes(editedField.field_type) && (
         <div className="space-y-3 border-t border-slate-100 pt-3">
           <label className="block text-xs font-semibold text-slate-600">
             {t("builder.validationRules", "Validation Rules")}
           </label>
-
 
           {/* Text validation properties */}
           {editedField.field_type === "text" && (
@@ -398,6 +430,163 @@ export default function PropertiesPanel({
                   </div>
                 </>
               )}
+            </div>
+          )}
+
+          {/* Dropdown validation properties */}
+          {editedField.field_type === "dropdown" && (
+            <div className="flex items-center gap-2 py-1">
+              <input
+                id="allow_other"
+                type="checkbox"
+                checked={editedField.config?.allow_other ?? false}
+                onChange={(e) =>
+                  handleConfigChange("allow_other", e.target.checked)
+                }
+                className="h-3.5 w-3.5 rounded border-slate-300 text-primary focus:ring-primary/20 accent-primary"
+              />
+              <label
+                htmlFor="allow_other"
+                className="text-[11px] font-medium text-slate-600 cursor-pointer select-none"
+              >
+                Allow "Other" write-in response
+              </label>
+            </div>
+          )}
+
+          {/* Checkbox validation properties */}
+          {editedField.field_type === "checkbox" && (
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="mb-1 block text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Min Selections
+                </label>
+                <Input
+                  type="number"
+                  className="h-8 text-xs"
+                  placeholder="Min selected"
+                  value={editedField.config?.min_select ?? ""}
+                  onChange={(e) =>
+                    handleConfigChange(
+                      "min_select",
+                      e.target.value === "" ? "" : Math.max(0, parseInt(e.target.value) || 0)
+                    )
+                  }
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Max Selections
+                </label>
+                <Input
+                  type="number"
+                  className="h-8 text-xs"
+                  placeholder="Max selected"
+                  value={editedField.config?.max_select ?? ""}
+                  onChange={(e) =>
+                    handleConfigChange(
+                      "max_select",
+                      e.target.value === "" ? "" : Math.max(1, parseInt(e.target.value) || 1)
+                    )
+                  }
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Date validation properties */}
+          {editedField.field_type === "date" && (
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="mb-1 block text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Min Date
+                </label>
+                <Input
+                  type="date"
+                  className="h-8 text-xs"
+                  value={editedField.config?.min_date ?? ""}
+                  onChange={(e) => handleConfigChange("min_date", e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Max Date
+                </label>
+                <Input
+                  type="date"
+                  className="h-8 text-xs"
+                  value={editedField.config?.max_date ?? ""}
+                  onChange={(e) => handleConfigChange("max_date", e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Rating validation properties */}
+          {editedField.field_type === "rating" && (
+            <div>
+              <label className="mb-1 block text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
+                Max Rating Scale (Stars/Points)
+              </label>
+              <Input
+                type="number"
+                className="h-8 text-xs"
+                placeholder="e.g. 5 or 10"
+                value={editedField.config?.max_rating ?? 5}
+                onChange={(e) =>
+                  handleConfigChange(
+                    "max_rating",
+                    e.target.value === "" ? "" : Math.max(2, parseInt(e.target.value) || 5)
+                  )
+                }
+              />
+            </div>
+          )}
+
+          {/* File validation properties */}
+          {editedField.field_type === "file" && (
+            <div className="space-y-2.5">
+              <div>
+                <label className="mb-1 block text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Max File Size (MB)
+                </label>
+                <Input
+                  type="number"
+                  className="h-8 text-xs"
+                  placeholder="e.g. 10"
+                  value={editedField.config?.max_size_mb ?? 10}
+                  onChange={(e) =>
+                    handleConfigChange(
+                      "max_size_mb",
+                      e.target.value === "" ? "" : Math.max(1, parseInt(e.target.value) || 10)
+                    )
+                  }
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
+                  Allowed Extensions (comma-separated)
+                </label>
+                <Input
+                  type="text"
+                  className="h-8 text-xs"
+                  placeholder="pdf, docx, png, jpg"
+                  value={
+                    Array.isArray(editedField.config?.allowed_extensions)
+                      ? editedField.config.allowed_extensions.join(", ")
+                      : typeof editedField.config?.allowed_extensions === "string"
+                      ? editedField.config.allowed_extensions
+                      : "pdf, docx, png, jpg"
+                  }
+                  onChange={(e) => {
+                    const exts = e.target.value
+                      .split(",")
+                      .map((s) => s.trim().toLowerCase().replace(/^\./, ""))
+                      .filter(Boolean);
+                    handleConfigChange("allowed_extensions", exts);
+                  }}
+                />
+              </div>
             </div>
           )}
         </div>
