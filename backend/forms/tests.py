@@ -102,3 +102,123 @@ class DynamicFallbackGeneratorTests(SimpleTestCase):
         self.assertEqual(file_cfg["max_size_mb"], 10)
         FieldConfigValidator.validate("file", file_cfg)
 
+
+from datetime import timedelta
+from django.contrib.auth import get_user_model
+from django.core.management import call_command
+from django.test import TestCase
+from django.utils import timezone
+from rest_framework.test import APIClient
+
+from .models import AuditLog, Form, FormVersion, Submission
+from .services import archive_expired_submissions
+
+User = get_user_model()
+
+
+class DataRetentionTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="owner",
+            email="owner@example.com",
+            password="testpassword123",
+            first_name="Alice",
+            last_name="Smith",
+        )
+        self.form = Form.objects.create(
+            title="Customer Feedback Form",
+            owner=self.user,
+            status="published",
+            retention_days=30,
+        )
+        self.version = FormVersion.objects.create(
+            form=self.form,
+            version=1,
+            status="published",
+            is_active=True,
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_archive_expired_submissions_accuracy(self):
+        """
+        Example scenario:
+        - Submission A: submitted 5 days ago (Within 30-day retention -> remains active).
+        - Submission B: submitted 45 days ago (Exceeds 30-day retention -> must be auto-archived).
+        - Submission C: submitted 90 days ago (Exceeds 30-day retention -> must be auto-archived).
+        """
+        now = timezone.now()
+
+        sub_recent = Submission.objects.create(
+            form_version=self.version,
+            status="submitted",
+            submitted_at=now - timedelta(days=5),
+            respondent_email="recent@example.com",
+        )
+        sub_old_1 = Submission.objects.create(
+            form_version=self.version,
+            status="submitted",
+            submitted_at=now - timedelta(days=45),
+            respondent_email="old1@example.com",
+        )
+        sub_old_2 = Submission.objects.create(
+            form_version=self.version,
+            status="submitted",
+            submitted_at=now - timedelta(days=90),
+            respondent_email="old2@example.com",
+        )
+
+        archived_count = archive_expired_submissions(self.form, actor=self.user)
+        self.assertEqual(archived_count, 2)
+
+        sub_recent.refresh_from_db()
+        sub_old_1.refresh_from_db()
+        sub_old_2.refresh_from_db()
+
+        self.assertEqual(sub_recent.status, "submitted")
+        self.assertEqual(sub_old_1.status, "archived")
+        self.assertEqual(sub_old_2.status, "archived")
+
+        # Verify audit trail
+        audit = AuditLog.objects.filter(form=self.form, action="submissions_auto_archived").first()
+        self.assertIsNotNone(audit)
+        self.assertEqual(audit.details["count"], 2)
+        self.assertEqual(audit.details["retention_days"], 30)
+
+    def test_retention_api_endpoint(self):
+        """Test setting retention policy via POST /api/forms/{id}/retention/."""
+        now = timezone.now()
+        sub_old = Submission.objects.create(
+            form_version=self.version,
+            status="submitted",
+            submitted_at=now - timedelta(days=20),
+        )
+
+        # Update retention period from 30 days to 15 days
+        response = self.client.post(
+            f"/api/forms/{self.form.id}/retention/",
+            {"retention_days": 15},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["retention_days"], 15)
+        self.assertEqual(response.data["archived_now"], 1)
+
+        sub_old.refresh_from_db()
+        self.assertEqual(sub_old.status, "archived")
+
+    def test_management_command_archive_expired_submissions(self):
+        """Test CLI command: python manage.py archive_expired_submissions."""
+        now = timezone.now()
+        sub_expired = Submission.objects.create(
+            form_version=self.version,
+            status="submitted",
+            submitted_at=now - timedelta(days=60),
+        )
+
+        call_command("archive_expired_submissions")
+
+        sub_expired.refresh_from_db()
+        self.assertEqual(sub_expired.status, "archived")
+
+

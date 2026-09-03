@@ -1,5 +1,6 @@
 from datetime import timedelta
 from django.core import signing
+from django.db import models
 from django.utils import timezone
 
 from .models import AuditLog, Submission
@@ -13,9 +14,13 @@ def archive_expired_submissions(form, actor=None):
     if not form.retention_days:
         return 0
     cutoff = timezone.now() - timedelta(days=form.retention_days)
+    expired_q = (
+        models.Q(submitted_at__lt=cutoff)
+        | (models.Q(submitted_at__isnull=True) & models.Q(created_at__lt=cutoff))
+    )
     count = Submission.objects.filter(
-        form_version__form=form, status="submitted", submitted_at__lt=cutoff
-    ).update(status="archived")
+        form_version__form=form, status="submitted"
+    ).filter(expired_q).update(status="archived")
     if count:
         AuditLog.objects.create(
             form=form,

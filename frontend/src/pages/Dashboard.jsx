@@ -141,9 +141,16 @@ export default function Dashboard() {
 
   const saveRetention = async () => {
     try {
-      await setRetentionPolicy(active.id, { retention_days: days ? Number(days) : null });
-      toast.success("Retention policy saved.");
-      loadForms();
+      const res = await setRetentionPolicy(active.id, { retention_days: days ? Number(days) : null });
+      if (res?.archived_now > 0) {
+        toast.success(`Retention policy saved. ${res.archived_now} expired response(s) archived.`);
+      } else {
+        toast.success("Retention policy saved.");
+      }
+      await loadForms();
+      if (active?.id) {
+        getFormAnalytics(active.id).then((data) => setAnalytics(data)).catch(() => {});
+      }
     } catch {
       toast.error("Enter a retention period from 1 to 3650 days.");
     }

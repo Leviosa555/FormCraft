@@ -1048,6 +1048,8 @@ class FormResponsesView(APIView):
             owner=request.user,
         )
 
+        archive_expired_submissions(form, request.user)
+
         submissions = (
             Submission.objects
             .filter(form_version__form=form)
@@ -1057,7 +1059,6 @@ class FormResponsesView(APIView):
             )
             .order_by("-created_at")
         )
-        archive_expired_submissions(form, request.user)
         status_filter = request.query_params.get("status")
         if status_filter in {"started", "submitted", "archived"}:
             submissions = submissions.filter(status=status_filter)
