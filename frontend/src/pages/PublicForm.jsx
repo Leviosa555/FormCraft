@@ -131,17 +131,14 @@ export default function PublicForm() {
   useEffect(() => {
     const fetchForm = async () => {
       try {
-        let data, session;
+        let data;
         if (singleToken) {
           data = await getPublicSingleUseForm(singleToken);
           setForm(data);
-          session = await startPublicSingleUseForm(singleToken);
         } else {
           data = await getPublicForm(shareToken);
           setForm(data);
-          session = await startPublicForm(shareToken);
         }
-        setSessionToken(session.session_token);
       } catch (err) {
         console.error("Failed to load public form:", err);
         const errData = err?.response?.data;
@@ -358,6 +355,21 @@ export default function PublicForm() {
     try {
       const res = await verifyPublicFormOTP(activeToken, otpEmail.trim().toLowerCase(), cleanCode, isSingleUse);
       if (res.verified) {
+        // Start respondent session ONLY after successful OTP verification
+        try {
+          let session;
+          if (singleToken) {
+            session = await startPublicSingleUseForm(singleToken);
+          } else {
+            session = await startPublicForm(shareToken);
+          }
+          if (session?.session_token) {
+            setSessionToken(session.session_token);
+          }
+        } catch (startErr) {
+          console.warn("Could not start response tracking session:", startErr);
+        }
+
         setIsVerified(true);
         setVerificationToken(res.verification_token);
         setVerifiedEmail(res.email);
