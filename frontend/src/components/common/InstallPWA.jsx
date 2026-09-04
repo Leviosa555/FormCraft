@@ -3,6 +3,50 @@ import { Download, Share, Smartphone, X, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
 
+export function checkIsStandalone() {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.matchMedia("(display-mode: minimal-ui)").matches ||
+    window.matchMedia("(display-mode: fullscreen)").matches ||
+    window.navigator.standalone === true ||
+    (typeof document !== "undefined" && document.referrer && document.referrer.startsWith("android-app://"))
+  );
+}
+
+export function useIsStandalone() {
+  const [isStandalone, setIsStandalone] = useState(() => checkIsStandalone());
+
+  useEffect(() => {
+    const update = () => setIsStandalone(checkIsStandalone());
+    update();
+
+    const mediaQuery = window.matchMedia("(display-mode: standalone)");
+    if (mediaQuery?.addEventListener) {
+      mediaQuery.addEventListener("change", update);
+    } else if (mediaQuery?.addListener) {
+      mediaQuery.addListener(update);
+    }
+
+    const onAppInstalled = () => {
+      setIsStandalone(true);
+    };
+
+    window.addEventListener("appinstalled", onAppInstalled);
+
+    return () => {
+      if (mediaQuery?.removeEventListener) {
+        mediaQuery.removeEventListener("change", update);
+      } else if (mediaQuery?.removeListener) {
+        mediaQuery.removeListener(update);
+      }
+      window.removeEventListener("appinstalled", onAppInstalled);
+    };
+  }, []);
+
+  return isStandalone;
+}
+
 export function triggerPWAInstall() {
   window.dispatchEvent(new CustomEvent("trigger-pwa-install"));
 }
@@ -10,18 +54,12 @@ export function triggerPWAInstall() {
 export default function InstallPWA({ variant = "banner" }) {
   const { t } = useTranslation();
   const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [isStandalone, setIsStandalone] = useState(false);
+  const isStandalone = useIsStandalone();
   const [isIOS, setIsIOS] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [showManualGuide, setShowManualGuide] = useState(false);
 
   useEffect(() => {
-    // Detect if already installed & running standalone
-    const isStandaloneMode =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.navigator.standalone === true;
-    setIsStandalone(isStandaloneMode);
-
     // Detect iOS
     const isIosDevice =
       /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;

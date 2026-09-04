@@ -3,13 +3,14 @@ import { ArrowRight, Menu, Smartphone, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "@/lib/i18n";
 import { LanguageSelector } from "@/components/ui/LanguageSelector";
-import { triggerPWAInstall } from "@/components/common/InstallPWA";
+import { triggerPWAInstall, useIsStandalone } from "@/components/common/InstallPWA";
 
 
 export function Navbar() {
   const { t } = useTranslation();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const isInstalled = useIsStandalone();
 
   const links = [
     { label: t("nav.product", "Product"), href: "#product" },
@@ -96,17 +97,19 @@ export function Navbar() {
             ))}
             <div className="h-px bg-border/60 my-1" />
             <div className="flex flex-col gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  triggerPWAInstall();
-                }}
-                className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 text-xs font-medium text-emerald-800 hover:bg-emerald-100 hover:text-emerald-900 transition-colors shadow-2xs"
-              >
-                <Smartphone className="h-3.5 w-3.5 text-emerald-600" />
-                <span>{t("pwa.installApp", "Install App")}</span>
-              </button>
+              {!isInstalled && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    triggerPWAInstall();
+                  }}
+                  className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 text-xs font-medium text-emerald-800 hover:bg-emerald-100 hover:text-emerald-900 transition-colors shadow-2xs"
+                >
+                  <Smartphone className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>{t("pwa.installApp", "Install App")}</span>
+                </button>
+              )}
 
               <Link
                 to="/login"
